@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
 import { todayDateString, dateStringForDaysFromNow, formatTime, formatDurationSeconds, formatElapsedMs } from '../../src/utils/dateUtils';
@@ -72,8 +73,8 @@ export default function TodayScreen() {
   }
 
   function sourceBadge(layer: 'preset' | 'customization' | 'ephemeral') {
-    if (layer === 'customization') return <Text style={styles.badgeCustom}>✏️</Text>;
-    if (layer === 'ephemeral') return <Text style={styles.badgeRule}>⚡</Text>;
+    if (layer === 'customization') return <Ionicons name="create-outline" size={14} color={Colors.info} />;
+    if (layer === 'ephemeral') return <Ionicons name="flash-outline" size={14} color={Colors.warning} />;
     return null;
   }
 
@@ -108,7 +109,9 @@ export default function TodayScreen() {
                   )}
                 </View>
               </View>
-              <Text style={styles.presetIcon}>{resolved.preset.icon}</Text>
+              <View style={[styles.presetIconBox, { backgroundColor: resolved.preset.color + '33' }]}>
+                <Ionicons name={resolved.preset.icon as any} size={28} color={resolved.preset.color} />
+              </View>
             </View>
           </View>
         ) : (
@@ -123,13 +126,16 @@ export default function TodayScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.quickBtn} onPress={() => router.push('/override')}>
-            <Text style={styles.quickBtnText}>⇄ Switch Today's Preset</Text>
+            <Ionicons name="swap-horizontal-outline" size={14} color={Colors.text} />
+            <Text style={styles.quickBtnText}> Switch Today</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickBtnSecondary} onPress={() => router.push('/customize')}>
-            <Text style={styles.quickBtnSecondaryText}>✏️ Customize Today</Text>
+            <Ionicons name="create-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.quickBtnSecondaryText}> Customize</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickBtnSecondary} onPress={() => router.push({ pathname: '/override', params: { date: tomorrow } })}>
-            <Text style={styles.quickBtnSecondaryText}>📅 Switch Tomorrow</Text>
+            <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.quickBtnSecondaryText}> Tomorrow</Text>
           </TouchableOpacity>
         </View>
 
@@ -182,22 +188,22 @@ export default function TodayScreen() {
                   <View style={styles.timerActions}>
                     {!active && (
                       <TouchableOpacity style={styles.actionBtn} onPress={() => startTimer(timer.id)}>
-                        <Text style={styles.actionBtnText}>▶ Start</Text>
+                        <Ionicons name="play" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
                     {active && isRunning && (
                       <TouchableOpacity style={[styles.actionBtn, styles.actionBtnWarning]} onPress={() => pauseTimer(timer.id)}>
-                        <Text style={styles.actionBtnText}>⏸ Pause</Text>
+                        <Ionicons name="pause" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
                     {active && !isRunning && !isDone && (
                       <TouchableOpacity style={styles.actionBtn} onPress={() => resumeTimer(timer.id)}>
-                        <Text style={styles.actionBtnText}>▶ Resume</Text>
+                        <Ionicons name="play" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
                     {active && (
                       <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => stopTimer(timer.id)}>
-                        <Text style={styles.actionBtnText}>⏹ Stop</Text>
+                        <Ionicons name="stop" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -230,16 +236,16 @@ export default function TodayScreen() {
                   <View style={styles.timerActions}>
                     {!active && (
                       <TouchableOpacity style={styles.actionBtn} onPress={() => startStopwatch(sw.id)}>
-                        <Text style={styles.actionBtnText}>▶ Start</Text>
+                        <Ionicons name="play" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
                     {active && isRunning && (
                       <>
                         <TouchableOpacity style={[styles.actionBtn, styles.actionBtnInfo]} onPress={() => lapStopwatch(sw.id)}>
-                          <Text style={styles.actionBtnText}>🏁 Lap</Text>
+                          <Ionicons name="flag-outline" size={12} color={Colors.text} />
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => stopStopwatch(sw.id)}>
-                          <Text style={styles.actionBtnText}>⏹ Stop</Text>
+                          <Ionicons name="stop" size={12} color={Colors.text} />
                         </TouchableOpacity>
                       </>
                     )}
@@ -284,7 +290,7 @@ const styles = StyleSheet.create({
   presetCardLabel: { fontSize: 12, color: Colors.textMuted, marginBottom: 2 },
   presetCardName: { fontSize: 20, fontWeight: '700', color: Colors.text },
   presetCardBadges: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  presetIcon: { fontSize: 32 },
+  presetIconBox: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   overrideBadge: { backgroundColor: Colors.warning + '33', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
   overrideBadgeText: { fontSize: 11, color: Colors.warning, fontWeight: '600' },
   customBadge: { backgroundColor: Colors.info + '33', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
@@ -307,6 +313,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
     minWidth: '45%',
   },
   quickBtnText: { color: Colors.text, fontWeight: '600', fontSize: 13 },
@@ -317,6 +325,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
     minWidth: '45%',

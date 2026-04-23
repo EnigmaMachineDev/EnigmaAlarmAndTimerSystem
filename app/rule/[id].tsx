@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
-import { RuleTrigger, RuleCondition, RuleAction } from '../../src/types';
+import { RuleTrigger, ConditionLogic, RuleCondition, RuleAction } from '../../src/types';
 import { RuleConditionBuilder } from '../../src/components/RuleConditionBuilder';
 import { RuleActionBuilder } from '../../src/components/RuleActionBuilder';
 
@@ -34,6 +34,7 @@ export default function EditRuleScreen() {
 
   const [name, setName] = useState(rule?.name ?? '');
   const [trigger, setTrigger] = useState<RuleTrigger>(rule?.trigger ?? 'START_OF_DAY');
+  const [conditionLogic, setConditionLogic] = useState<ConditionLogic>(rule?.conditionLogic ?? 'AND');
   const [conditions, setConditions] = useState<RuleCondition[]>(rule?.conditions ?? []);
   const [actions, setActions] = useState<RuleAction[]>(rule?.actions ?? []);
   const [triggerPickerVisible, setTriggerPickerVisible] = useState(false);
@@ -55,7 +56,7 @@ export default function EditRuleScreen() {
       return;
     }
     if (!id) return;
-    updateRule(id, { name: name.trim(), trigger, conditions, actions });
+    updateRule(id, { name: name.trim(), trigger, conditionLogic, conditions, actions });
     router.back();
   }
 
@@ -95,14 +96,8 @@ export default function EditRuleScreen() {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        <RuleConditionBuilder conditions={conditions} onChange={setConditions} />
+        <RuleConditionBuilder conditions={conditions} onChange={setConditions} conditionLogic={conditionLogic} onLogicChange={setConditionLogic} />
         <RuleActionBuilder actions={actions} onChange={setActions} />
-
-        <View style={styles.helpBox}>
-          <Text style={styles.helpText}>
-            All conditions are combined with AND logic. The rule fires its actions only when all conditions are true.
-          </Text>
-        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>

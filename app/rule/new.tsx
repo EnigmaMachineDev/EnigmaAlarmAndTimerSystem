@@ -17,14 +17,9 @@ import { Colors } from '../../src/constants/colors';
 import { generateId } from '../../src/utils/uuid';
 import {
   RuleTrigger,
-  ConditionType,
-  ActionType,
+  ConditionLogic,
   RuleCondition,
   RuleAction,
-  AddAlarmAction,
-  AddTimerAction,
-  SendNotificationAction,
-  SwitchPresetAction,
 } from '../../src/types';
 import { RuleConditionBuilder } from '../../src/components/RuleConditionBuilder';
 import { RuleActionBuilder } from '../../src/components/RuleActionBuilder';
@@ -42,6 +37,7 @@ export default function NewRuleScreen() {
 
   const [name, setName] = useState('');
   const [trigger, setTrigger] = useState<RuleTrigger>('START_OF_DAY');
+  const [conditionLogic, setConditionLogic] = useState<ConditionLogic>('AND');
   const [conditions, setConditions] = useState<RuleCondition[]>([]);
   const [actions, setActions] = useState<RuleAction[]>([]);
   const [triggerPickerVisible, setTriggerPickerVisible] = useState(false);
@@ -60,6 +56,7 @@ export default function NewRuleScreen() {
       name: name.trim(),
       enabled: true,
       trigger,
+      conditionLogic,
       conditions,
       actions,
     });
@@ -100,14 +97,8 @@ export default function NewRuleScreen() {
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        <RuleConditionBuilder conditions={conditions} onChange={setConditions} />
+        <RuleConditionBuilder conditions={conditions} onChange={setConditions} conditionLogic={conditionLogic} onLogicChange={setConditionLogic} />
         <RuleActionBuilder actions={actions} onChange={setActions} />
-
-        <View style={styles.helpBox}>
-          <Text style={styles.helpText}>
-            All conditions are combined with AND logic. The rule fires its actions only when all conditions are true.
-          </Text>
-        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>

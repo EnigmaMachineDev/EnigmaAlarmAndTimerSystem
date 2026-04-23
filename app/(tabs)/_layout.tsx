@@ -9,6 +9,7 @@ const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> 
   Today:    { active: 'sunny',          inactive: 'sunny-outline' },
   Presets:  { active: 'layers',         inactive: 'layers-outline' },
   Schedule: { active: 'calendar',       inactive: 'calendar-outline' },
+  Rules:    { active: 'git-branch',     inactive: 'git-branch-outline' },
   Settings: { active: 'settings',       inactive: 'settings-outline' },
 };
 
@@ -56,6 +57,12 @@ export default function TabLayout() {
         name="schedule"
         options={{
           tabBarIcon: ({ focused }) => <TabIcon name="Schedule" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="rules"
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="Rules" focused={focused} />,
         }}
       />
       <Tabs.Screen

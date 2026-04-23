@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Colors } from '../constants/colors';
+import { useAppStore } from '../store/useAppStore';
+import { formatTime } from '../utils/dateUtils';
 
 interface Props {
   value: string; // "HH:MM" 24h
@@ -23,6 +25,7 @@ function dateToTimeString(date: Date): string {
 }
 
 export function TimePicker({ value, onChange, label }: Props) {
+  const use12h = useAppStore((s) => s.settings.timeFormat === '12h');
   const [show, setShow] = useState(false);
   const [pending, setPending] = useState<Date>(timeStringToDate(value));
 
@@ -41,11 +44,7 @@ export function TimePicker({ value, onChange, label }: Props) {
     setShow(false);
   }
 
-  const displayHour = parseInt(value.split(':')[0]);
-  const displayMin = value.split(':')[1];
-  const ampm = displayHour >= 12 ? 'PM' : 'AM';
-  const hour12 = displayHour % 12 || 12;
-  const display12 = `${hour12}:${displayMin} ${ampm}`;
+  const displayLabel = formatTime(value, use12h);
 
   return (
     <View>
@@ -54,7 +53,7 @@ export function TimePicker({ value, onChange, label }: Props) {
         onPress={() => { setPending(timeStringToDate(value)); setShow(true); }}
       >
         {label && <Text style={styles.label}>{label}</Text>}
-        <Text style={styles.timeText}>{display12}</Text>
+        <Text style={styles.timeText}>{displayLabel}</Text>
         <Text style={styles.chevron}>›</Text>
       </TouchableOpacity>
 
@@ -63,7 +62,7 @@ export function TimePicker({ value, onChange, label }: Props) {
         <DateTimePicker
           value={timeStringToDate(value)}
           mode="time"
-          is24Hour={false}
+          is24Hour={!use12h}
           display="default"
           onChange={handleChange}
         />
@@ -86,7 +85,7 @@ export function TimePicker({ value, onChange, label }: Props) {
               <DateTimePicker
                 value={pending}
                 mode="time"
-                is24Hour={false}
+                is24Hour={!use12h}
                 display="spinner"
                 onChange={handleChange}
                 style={styles.iosPicker}

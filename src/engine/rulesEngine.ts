@@ -55,9 +55,13 @@ function evaluateCondition(condition: RuleCondition, data: AppData): boolean {
   }
 }
 
-function evaluateConditions(conditions: RuleCondition[], data: AppData): boolean {
+function evaluateConditions(conditions: RuleCondition[], logic: 'AND' | 'OR', data: AppData): boolean {
   if (conditions.length === 0) return true;
-  return conditions.every((c) => evaluateCondition(c, data));
+  const results = conditions.map((c) => {
+    const result = evaluateCondition(c, data);
+    return c.negate ? !result : result;
+  });
+  return logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
 }
 
 async function dispatchAction(
@@ -151,7 +155,7 @@ export async function runRulesEngine(
   const enabledRules = data.rules.filter((r) => r.enabled && r.trigger === trigger);
 
   for (const rule of enabledRules) {
-    const conditionsMet = evaluateConditions(rule.conditions, data);
+    const conditionsMet = evaluateConditions(rule.conditions, rule.conditionLogic ?? 'AND', data);
     if (!conditionsMet) continue;
 
     for (const action of rule.actions) {

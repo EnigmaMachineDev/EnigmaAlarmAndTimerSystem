@@ -115,9 +115,12 @@ export interface EphemeralAlarm {
 
 // ─── Rules ───────────────────────────────────────────────────────────────────
 
+export type ConditionLogic = 'AND' | 'OR';
+
 export interface RuleCondition {
   type: ConditionType;
   value: string | string[]; // presetId, day list, or time string
+  negate?: boolean; // if true, condition is negated (NOT)
 }
 
 export interface AddAlarmAction {
@@ -154,6 +157,7 @@ export interface Rule {
   name: string;
   enabled: boolean;
   trigger: RuleTrigger;
+  conditionLogic: ConditionLogic; // 'AND' | 'OR'
   conditions: RuleCondition[];
   actions: RuleAction[];
 }

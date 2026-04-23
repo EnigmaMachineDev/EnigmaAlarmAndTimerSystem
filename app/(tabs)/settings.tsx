@@ -19,16 +19,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
 import { exportAppData, readImportFile, resetAppData, saveAppDataImmediate } from '../../src/storage/fileStorage';
-import { Rule } from '../../src/types';
 import { TimePicker } from '../../src/components/TimePicker';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const settings = useAppStore((s) => s.settings);
-  const rules = useAppStore((s) => s.rules);
   const updateSettings = useAppStore((s) => s.updateSettings);
-  const toggleRule = useAppStore((s) => s.toggleRule);
-  const deleteRule = useAppStore((s) => s.deleteRule);
   const hydrate = useAppStore((s) => s.hydrate);
 
   const [exporting, setExporting] = useState(false);
@@ -172,40 +168,6 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Rules */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Rules</Text>
-          <TouchableOpacity style={styles.addSmallBtn} onPress={() => router.push('/rule/new')}>
-            <Text style={styles.addSmallBtnText}>+ Add</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.card}>
-          {rules.length === 0 && (
-            <View style={styles.emptyRules}>
-              <Text style={styles.emptyRulesText}>No rules yet. Rules fire automatically based on your schedule.</Text>
-              <TouchableOpacity onPress={() => router.push('/rule/new')}>
-                <Text style={styles.emptyRulesLink}>Create a rule →</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {rules.map((rule, i) => (
-            <View key={rule.id}>
-              {i > 0 && <Divider />}
-              <RuleRow
-                rule={rule}
-                onToggle={() => toggleRule(rule.id)}
-                onEdit={() => router.push(`/rule/${rule.id}`)}
-                onDelete={() => {
-                  Alert.alert('Delete Rule', `Delete "${rule.name}"?`, [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => deleteRule(rule.id) },
-                  ]);
-                }}
-              />
-            </View>
-          ))}
-        </View>
-
         {/* Data */}
         <Text style={styles.sectionTitle}>Data</Text>
         <View style={styles.card}>
@@ -293,29 +255,6 @@ function SwitchRow({ label, value, onValueChange }: { label: string; value: bool
   );
 }
 
-function RuleRow({ rule, onToggle, onEdit, onDelete }: { rule: Rule; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
-  return (
-    <View style={styles.ruleRow}>
-      <TouchableOpacity style={styles.ruleMain} onPress={onEdit} activeOpacity={0.7}>
-        <View>
-          <Text style={styles.ruleName}>{rule.name}</Text>
-          <Text style={styles.ruleTrigger}>{rule.trigger}</Text>
-        </View>
-        <View style={styles.ruleActions}>
-          <Switch
-            value={rule.enabled}
-            onValueChange={onToggle}
-            trackColor={{ false: Colors.alarmOff, true: Colors.alarmOn }}
-            thumbColor={Colors.text}
-          />
-          <TouchableOpacity onPress={onDelete} style={styles.deleteRuleBtn}>
-            <Text style={styles.deleteRuleBtnText}>🗑</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 function Divider() {
   return <View style={styles.divider} />;
@@ -341,18 +280,6 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: Colors.primary },
   segmentText: { fontSize: 13, color: Colors.textSecondary },
   segmentTextActive: { color: Colors.text, fontWeight: '600' },
-  addSmallBtn: { backgroundColor: Colors.primary, borderRadius: 7, paddingHorizontal: 10, paddingVertical: 5 },
-  addSmallBtnText: { color: Colors.text, fontWeight: '600', fontSize: 13 },
-  emptyRules: { padding: 16 },
-  emptyRulesText: { color: Colors.textMuted, fontSize: 13, lineHeight: 18 },
-  emptyRulesLink: { color: Colors.primary, marginTop: 8, fontSize: 14 },
-  ruleRow: { paddingHorizontal: 14, paddingVertical: 10 },
-  ruleMain: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ruleName: { fontSize: 15, color: Colors.text, fontWeight: '600' },
-  ruleTrigger: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  ruleActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  deleteRuleBtn: { padding: 4 },
-  deleteRuleBtnText: { fontSize: 18 },
   dangerBtn: {
     backgroundColor: Colors.error + '22',
     borderWidth: 1,

@@ -12,6 +12,7 @@ import {
 import { Colors } from '../constants/colors';
 import { RuleAction, ActionType } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { TimePicker } from './TimePicker';
 
 interface Props {
   actions: RuleAction[];
@@ -127,14 +128,10 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
                 {/* ADD_ALARM fields */}
                 {editingAction.type === 'ADD_ALARM' && (
                   <>
-                    <Text style={styles.fieldLabel}>Time (HH:MM)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={editingAction.time}
-                      onChangeText={(v) => updateAction({ time: v } as any)}
-                      placeholder="22:00"
-                      placeholderTextColor={Colors.textMuted}
-                      keyboardType="numbers-and-punctuation"
+                    <Text style={styles.fieldLabel}>Time</Text>
+                    <TimePicker
+                      value={editingAction.time || '22:00'}
+                      onChange={(v) => updateAction({ time: v } as any)}
                     />
                     <Text style={styles.fieldLabel}>Label</Text>
                     <TextInput
@@ -156,6 +153,7 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
                   </>
                 )}
 
+
                 {/* ADD_TIMER fields */}
                 {editingAction.type === 'ADD_TIMER' && (
                   <>
@@ -167,13 +165,28 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
                       placeholder="Evening wind-down"
                       placeholderTextColor={Colors.textMuted}
                     />
-                    <Text style={styles.fieldLabel}>Duration (seconds)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={String(editingAction.durationSeconds)}
-                      onChangeText={(v) => updateAction({ durationSeconds: parseInt(v) || 0 } as any)}
-                      keyboardType="number-pad"
-                    />
+                    <Text style={styles.fieldLabel}>Duration</Text>
+                    <View style={styles.durationRow}>
+                      <View style={styles.durationField}>
+                        <TextInput
+                          style={styles.input}
+                          value={String(Math.floor(editingAction.durationSeconds / 60))}
+                          onChangeText={(v) => updateAction({ durationSeconds: (parseInt(v) || 0) * 60 + (editingAction.durationSeconds % 60) } as any)}
+                          keyboardType="number-pad"
+                        />
+                        <Text style={styles.durationUnit}>min</Text>
+                      </View>
+                      <Text style={styles.durationSep}>:</Text>
+                      <View style={styles.durationField}>
+                        <TextInput
+                          style={styles.input}
+                          value={String(editingAction.durationSeconds % 60)}
+                          onChangeText={(v) => updateAction({ durationSeconds: Math.floor(editingAction.durationSeconds / 60) * 60 + (parseInt(v) || 0) } as any)}
+                          keyboardType="number-pad"
+                        />
+                        <Text style={styles.durationUnit}>sec</Text>
+                      </View>
+                    </View>
                   </>
                 )}
 
@@ -286,6 +299,10 @@ const styles = StyleSheet.create({
   optionDesc: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   check: { fontSize: 18, color: Colors.primary },
   colorDot: { width: 10, height: 10, borderRadius: 5 },
+  durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  durationField: { flex: 1 },
+  durationUnit: { fontSize: 11, color: Colors.textMuted, marginTop: 4, textAlign: 'center' },
+  durationSep: { fontSize: 24, color: Colors.textMuted, paddingBottom: 16 },
   modalBtns: { flexDirection: 'row', gap: 10, marginTop: 20 },
   cancelBtn: { flex: 1, backgroundColor: Colors.surfaceAlt, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   cancelBtnText: { color: Colors.textSecondary, fontWeight: '600' },
