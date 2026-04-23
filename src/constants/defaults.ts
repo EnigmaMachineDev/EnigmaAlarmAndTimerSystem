@@ -45,16 +45,16 @@ export const DAY_LABELS: Record<string, string> = {
 };
 
 export const PRESET_COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // emerald
+  '#4a8c4a', // forest green (primary)
+  '#6abf6a', // bright spirit green
+  '#2d5a2d', // deep accent green
+  '#81c784', // soft mint
+  '#7986cb', // grace blue
+  '#e57373', // courage red
   '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#84cc16', // lime
-  '#f97316', // orange
-  '#6366f1', // indigo
+  '#4db6ac', // teal
+  '#a0897a', // warm bark
+  '#90a4ae', // steel blue-grey
 ];
 
 export const PRESET_ICONS = [

@@ -1,38 +1,38 @@
 export const Colors = {
-  // Backgrounds
-  background: '#0f172a',
-  surface: '#1e293b',
-  surfaceAlt: '#334155',
-  card: '#1e293b',
+  // Backgrounds — Soulframe deep forest
+  background: '#0a0f0a',
+  surface: '#142014',
+  surfaceAlt: '#1a2e1a',
+  card: '#0f1a0f',
 
   // Borders
-  border: '#334155',
-  borderLight: '#475569',
+  border: '#1e3a1e',
+  borderLight: '#2d5a2d',
 
-  // Text
-  text: '#f1f5f9',
-  textSecondary: '#94a3b8',
-  textMuted: '#64748b',
+  // Text — soft mint
+  text: '#c8e6c8',
+  textSecondary: '#7a9f7a',
+  textMuted: '#3a5a3a',
 
-  // Brand
-  primary: '#3b82f6',
-  primaryDark: '#2563eb',
-  primaryLight: '#60a5fa',
+  // Brand — forest green
+  primary: '#4a8c4a',
+  primaryDark: '#2d5a2d',
+  primaryLight: '#6abf6a',
 
   // Semantic
-  success: '#10b981',
+  success: '#6abf6a',
   warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#06b6d4',
+  error: '#e57373',
+  info: '#81c784',
 
   // Layers / badges
   badgeCustomization: '#f59e0b',
-  badgeEphemeral: '#8b5cf6',
+  badgeEphemeral: '#7986cb',
 
   // Alarm toggle
-  alarmOn: '#3b82f6',
-  alarmOff: '#475569',
+  alarmOn: '#4a8c4a',
+  alarmOff: '#1e3a1e',
 
   // Transparent
-  overlay: 'rgba(0,0,0,0.5)',
+  overlay: 'rgba(0,0,0,0.7)',
 };
