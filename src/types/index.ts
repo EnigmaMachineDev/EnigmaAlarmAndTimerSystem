@@ -6,8 +6,6 @@ export type DayKey = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 
 export type TimeFormat = '12h' | '24h';
 
-export type AppTheme = 'system' | 'light' | 'dark';
-
 export type RuleTrigger =
   | 'START_OF_DAY'
   | 'END_OF_DAY'
@@ -167,7 +165,6 @@ export interface Settings {
   eveningCheckTime: string; // "HH:MM"
   defaultSnoozeDurationMinutes: number;
   timeFormat: TimeFormat;
-  theme: AppTheme;
   lastExportedAt: string | null; // ISO timestamp or null
 }
 

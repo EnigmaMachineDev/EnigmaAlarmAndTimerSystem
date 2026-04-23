@@ -11,6 +11,8 @@
     "build:preview": "eas build --platform android --profile preview"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-community/datetimepicker": "8.4.4",
     "expo": "~54.0.33",
     "expo-background-fetch": "~14.0.9",
     "expo-constants": "~18.0.13",

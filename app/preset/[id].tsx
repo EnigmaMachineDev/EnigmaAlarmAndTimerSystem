@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
 import { PRESET_COLORS, PRESET_ICONS } from '../../src/constants/defaults';
@@ -32,7 +33,7 @@ export default function EditPresetScreen() {
 
   const [name, setName] = useState(preset?.name ?? '');
   const [color, setColor] = useState(preset?.color ?? PRESET_COLORS[0]);
-  const [icon, setIcon] = useState(preset?.icon ?? PRESET_ICONS[0]);
+  const [icon, setIcon] = useState<string>(preset?.icon ?? PRESET_ICONS[0]);
   const [alarms, setAlarms] = useState<Alarm[]>(preset?.alarms ?? []);
   const [timers, setTimers] = useState<Timer[]>(preset?.timers ?? []);
   const [stopwatches, setStopwatches] = useState<Stopwatch[]>(preset?.stopwatches ?? []);
@@ -118,7 +119,7 @@ export default function EditPresetScreen() {
 
         <Text style={styles.fieldLabel}>Icon</Text>
         <TouchableOpacity style={styles.iconPickerBtn} onPress={() => setIconPickerVisible(true)}>
-          <Text style={styles.iconPickerSelected}>{icon}</Text>
+          <Ionicons name={icon as any} size={28} color={Colors.primaryLight} />
           <Text style={styles.iconPickerChange}>Change icon ›</Text>
         </TouchableOpacity>
 
@@ -143,7 +144,7 @@ export default function EditPresetScreen() {
                   style={[styles.iconOption, icon === item && styles.iconOptionSelected]}
                   onPress={() => { setIcon(item); setIconPickerVisible(false); }}
                 >
-                  <Text style={styles.iconOptionText}>{item}</Text>
+                  <Ionicons name={item as any} size={24} color={icon === item ? Colors.primaryLight : Colors.textSecondary} />
                 </TouchableOpacity>
               )}
             />

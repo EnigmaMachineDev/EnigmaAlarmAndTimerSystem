@@ -7,15 +7,20 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Notifications from 'expo-notifications';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
 import { exportAppData, readImportFile, resetAppData, saveAppDataImmediate } from '../../src/storage/fileStorage';
 import { Rule } from '../../src/types';
+import { TimePicker } from '../../src/components/TimePicker';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -28,6 +33,8 @@ export default function SettingsScreen() {
 
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [snoozeModalVisible, setSnoozeModalVisible] = useState(false);
+  const [snoozeInput, setSnoozeInput] = useState(String(settings.defaultSnoozeDurationMinutes));
 
   async function handleExport() {
     setExporting(true);
@@ -112,28 +119,33 @@ export default function SettingsScreen() {
         {/* Time Settings */}
         <Text style={styles.sectionTitle}>Time</Text>
         <View style={styles.card}>
-          <Row label="Day Start Time" value={settings.dayStartTime} onPress={() =>
-            Alert.prompt('Day Start Time', 'Enter time in HH:MM format (24h)', (val) => {
-              if (val && /^\d{2}:\d{2}$/.test(val)) updateSettings({ dayStartTime: val });
-            }, 'plain-text', settings.dayStartTime)
-          } />
+          <View style={styles.timePickerRow}>
+            <Text style={styles.rowLabel}>Day Start</Text>
+            <TimePicker
+              value={settings.dayStartTime}
+              onChange={(v) => updateSettings({ dayStartTime: v })}
+            />
+          </View>
           <Divider />
-          <Row label="Evening Check Time" value={settings.eveningCheckTime} onPress={() =>
-            Alert.prompt('Evening Check Time', 'Enter time in HH:MM format (24h)', (val) => {
-              if (val && /^\d{2}:\d{2}$/.test(val)) updateSettings({ eveningCheckTime: val });
-            }, 'plain-text', settings.eveningCheckTime)
-          } />
+          <View style={styles.timePickerRow}>
+            <Text style={styles.rowLabel}>Evening Check</Text>
+            <TimePicker
+              value={settings.eveningCheckTime}
+              onChange={(v) => updateSettings({ eveningCheckTime: v })}
+            />
+          </View>
           <Divider />
-          <Row label="Default Snooze" value={`${settings.defaultSnoozeDurationMinutes} min`} onPress={() =>
-            Alert.prompt('Default Snooze (minutes)', '', (val) => {
-              const n = parseInt(val);
-              if (!isNaN(n) && n > 0) updateSettings({ defaultSnoozeDurationMinutes: n });
-            }, 'plain-text', String(settings.defaultSnoozeDurationMinutes))
-          } />
+          <TouchableOpacity style={styles.row} onPress={() => { setSnoozeInput(String(settings.defaultSnoozeDurationMinutes)); setSnoozeModalVisible(true); }}>
+            <Text style={styles.rowLabel}>Default Snooze</Text>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>{settings.defaultSnoozeDurationMinutes} min</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
         </View>
 
-        {/* Display */}
-        <Text style={styles.sectionTitle}>Display</Text>
+        {/* Notifications */}
+        <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.card}>
           <SwitchRow
             label="12-hour format"
@@ -141,21 +153,22 @@ export default function SettingsScreen() {
             onValueChange={(v) => updateSettings({ timeFormat: v ? '12h' : '24h' })}
           />
           <Divider />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Theme</Text>
-            <View style={styles.segmentRow}>
-              {(['system', 'light', 'dark'] as const).map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[styles.segment, settings.theme === t && styles.segmentActive]}
-                  onPress={() => updateSettings({ theme: t })}
-                >
-                  <Text style={[styles.segmentText, settings.theme === t && styles.segmentTextActive]}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          <TouchableOpacity style={styles.row} onPress={async () => {
+            const { status } = await Notifications.requestPermissionsAsync();
+            Alert.alert('Notification Permission', status === 'granted' ? 'Notifications are enabled.' : 'Permission denied — enable in Android Settings > Apps > Enigma > Notifications.');
+          }}>
+            <Text style={styles.rowLabel}>Notification Permission</Text>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>Check</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
             </View>
+          </TouchableOpacity>
+          <Divider />
+          <View style={styles.infoRow}>
+            <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} style={{ marginTop: 1 }} />
+            <Text style={styles.infoText}>
+              Alarms fire as scheduled notifications. For reliable alarms, ensure Battery Optimization is disabled for Enigma in Android Settings.
+            </Text>
           </View>
         </View>
 
@@ -220,6 +233,36 @@ export default function SettingsScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Snooze edit modal */}
+      <Modal visible={snoozeModalVisible} transparent animationType="slide" onRequestClose={() => setSnoozeModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Default Snooze (minutes)</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={snoozeInput}
+              onChangeText={setSnoozeInput}
+              keyboardType="number-pad"
+              autoFocus
+              selectTextOnFocus
+            />
+            <View style={styles.modalBtns}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setSnoozeModalVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSaveBtn} onPress={() => {
+                const n = parseInt(snoozeInput);
+                if (!isNaN(n) && n > 0) updateSettings({ defaultSnoozeDurationMinutes: n });
+                setSnoozeModalVisible(false);
+              }}>
+                <Text style={styles.modalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -319,4 +362,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dangerBtnText: { color: Colors.error, fontWeight: '700', fontSize: 15 },
+  timePickerRow: { paddingHorizontal: 14, paddingVertical: 10, gap: 6 },
+  infoRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
+  infoText: { flex: 1, fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+  modalOverlay: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.borderLight, alignSelf: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 14 },
+  modalInput: { backgroundColor: Colors.surfaceAlt, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 24, fontWeight: '700', color: Colors.text, textAlign: 'center', marginBottom: 20 },
+  modalBtns: { flexDirection: 'row', gap: 10 },
+  modalCancelBtn: { flex: 1, backgroundColor: Colors.surfaceAlt, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  modalCancelText: { color: Colors.textSecondary, fontWeight: '600' },
+  modalSaveBtn: { flex: 1, backgroundColor: Colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  modalSaveText: { color: Colors.text, fontWeight: '700' },
 });

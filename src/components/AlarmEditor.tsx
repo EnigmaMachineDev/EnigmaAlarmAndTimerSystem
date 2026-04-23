@@ -10,10 +10,12 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { Alarm } from '../types';
 import { generateId } from '../utils/uuid';
 import { formatTime } from '../utils/dateUtils';
+import { TimePicker } from './TimePicker';
 
 interface Props {
   alarms: Alarm[];
@@ -26,7 +28,7 @@ const BLANK_ALARM: Omit<Alarm, 'id'> = {
   time: '07:00',
   enabled: true,
   sound: 'default',
-  snoozeDurationMinutes: 9,
+  snoozeDurationMinutes: 10,
   origin: 'preset',
 };
 
@@ -91,7 +93,7 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
             thumbColor={Colors.text}
           />
           <TouchableOpacity onPress={() => deleteAlarm(alarm.id)} style={styles.deleteBtn}>
-            <Text style={styles.deleteBtnText}>✕</Text>
+            <Ionicons name="close-circle" size={20} color={Colors.error} />
           </TouchableOpacity>
         </View>
       ))}
@@ -103,14 +105,10 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
             <Text style={styles.modalTitle}>{isNew ? 'New Alarm' : 'Edit Alarm'}</Text>
             {editing && (
               <ScrollView>
-                <Field label="Time (HH:MM)">
-                  <TextInput
-                    style={styles.input}
+                <Field label="Time">
+                  <TimePicker
                     value={editing.time}
-                    onChangeText={(v) => setEditing({ ...editing, time: v })}
-                    placeholder="07:00"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="numbers-and-punctuation"
+                    onChange={(v) => setEditing({ ...editing, time: v })}
                   />
                 </Field>
                 <Field label="Label">
@@ -126,7 +124,7 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
                   <TextInput
                     style={styles.input}
                     value={String(editing.snoozeDurationMinutes)}
-                    onChangeText={(v) => setEditing({ ...editing, snoozeDurationMinutes: parseInt(v) || 9 })}
+                    onChangeText={(v) => setEditing({ ...editing, snoozeDurationMinutes: parseInt(v) || 10 })}
                     keyboardType="number-pad"
                   />
                 </Field>

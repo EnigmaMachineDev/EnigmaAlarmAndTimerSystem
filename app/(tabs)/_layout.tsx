@@ -1,18 +1,32 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, View, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/constants/colors';
 
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> = {
+  Today:    { active: 'sunny',          inactive: 'sunny-outline' },
+  Presets:  { active: 'layers',         inactive: 'layers-outline' },
+  Schedule: { active: 'calendar',       inactive: 'calendar-outline' },
+  Settings: { active: 'settings',       inactive: 'settings-outline' },
+};
+
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Today: '☀️',
-    Presets: '🗂️',
-    Schedule: '📅',
-    Settings: '⚙️',
-  };
+  const icons = TAB_ICONS[name];
   return (
     <View style={styles.tabIcon}>
-      <Text style={styles.tabEmoji}>{icons[name]}</Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{name}</Text>
+      <Ionicons
+        name={focused ? icons.active : icons.inactive}
+        size={22}
+        color={focused ? Colors.primaryLight : Colors.textSecondary}
+      />
+      <Text
+        style={[styles.tabLabel, focused && styles.tabLabelFocused]}
+        numberOfLines={1}
+      >
+        {name}
+      </Text>
     </View>
   );
 }
@@ -66,17 +80,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 6,
-  },
-  tabEmoji: {
-    fontSize: 22,
+    minWidth: 60,
   },
   tabLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 2,
+    color: Colors.textSecondary,
+    marginTop: 3,
+    textAlign: 'center',
   },
   tabLabelFocused: {
-    color: Colors.primary,
+    color: Colors.primaryLight,
     fontWeight: '600',
   },
 });

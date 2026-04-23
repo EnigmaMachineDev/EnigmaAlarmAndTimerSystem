@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
 import { todayDateString } from '../../src/utils/dateUtils';
@@ -49,7 +50,7 @@ export default function PresetsScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {presets.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🗂️</Text>
+            <Ionicons name="layers-outline" size={48} color={Colors.textSecondary} style={{ marginBottom: 16 }} />
             <Text style={styles.emptyTitle}>No presets yet</Text>
             <Text style={styles.emptySubtitle}>
               Create your first preset — a named bundle of alarms, timers, and stopwatches.
@@ -71,6 +72,9 @@ export default function PresetsScreen() {
               activeOpacity={0.75}
             >
               <View style={styles.presetCardInner}>
+                <View style={[styles.presetIconBox, { backgroundColor: preset.color + '33' }]}>
+                  <Ionicons name={preset.icon as any} size={22} color={preset.color} />
+                </View>
                 <View style={styles.presetInfo}>
                   <View style={styles.presetNameRow}>
                     <Text style={styles.presetName}>{preset.name}</Text>
@@ -81,15 +85,21 @@ export default function PresetsScreen() {
                     )}
                   </View>
                   <View style={styles.presetMeta}>
-                    <Text style={styles.metaChip}>🔔 {preset.alarms.length} alarm{preset.alarms.length !== 1 ? 's' : ''}</Text>
-                    <Text style={styles.metaChip}>⏱ {preset.timers.length} timer{preset.timers.length !== 1 ? 's' : ''}</Text>
-                    <Text style={styles.metaChip}>⏱️ {preset.stopwatches.length} stopwatch{preset.stopwatches.length !== 1 ? 'es' : ''}</Text>
+                    <View style={styles.metaChip}>
+                      <Ionicons name="alarm-outline" size={11} color={Colors.textMuted} />
+                      <Text style={styles.metaChipText}>{preset.alarms.length}</Text>
+                    </View>
+                    <View style={styles.metaChip}>
+                      <Ionicons name="timer-outline" size={11} color={Colors.textMuted} />
+                      <Text style={styles.metaChipText}>{preset.timers.length}</Text>
+                    </View>
+                    <View style={styles.metaChip}>
+                      <Ionicons name="stopwatch-outline" size={11} color={Colors.textMuted} />
+                      <Text style={styles.metaChipText}>{preset.stopwatches.length}</Text>
+                    </View>
                   </View>
                 </View>
-                <View style={styles.presetRight}>
-                  <View style={[styles.colorDot, { backgroundColor: preset.color }]} />
-                  <Text style={styles.chevron}>›</Text>
-                </View>
+                <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} style={{ marginLeft: 8 }} />
               </View>
             </TouchableOpacity>
           );
@@ -160,9 +170,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   activeBadgeText: { fontSize: 11, color: Colors.primary, fontWeight: '600' },
-  presetMeta: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  metaChip: { fontSize: 12, color: Colors.textMuted },
-  presetRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8 },
-  colorDot: { width: 12, height: 12, borderRadius: 6 },
-  chevron: { fontSize: 22, color: Colors.textMuted, fontWeight: '300' },
+  presetIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  presetMeta: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 },
+  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaChipText: { fontSize: 12, color: Colors.textMuted },
 });

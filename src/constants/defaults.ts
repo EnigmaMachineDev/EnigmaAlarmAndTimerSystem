@@ -5,9 +5,8 @@ export const CURRENT_VERSION = 1;
 export const DEFAULT_SETTINGS: Settings = {
   dayStartTime: '06:00',
   eveningCheckTime: '20:00',
-  defaultSnoozeDurationMinutes: 9,
+  defaultSnoozeDurationMinutes: 10,
   timeFormat: '12h',
-  theme: 'system',
   lastExportedAt: null,
 };
 
@@ -58,22 +57,29 @@ export const PRESET_COLORS = [
 ];
 
 export const PRESET_ICONS = [
-  'briefcase',
-  'home',
-  'coffee',
-  'sun',
-  'moon',
-  'star',
-  'heart',
-  'zap',
-  'book',
-  'music',
-  'car',
-  'dumbbell',
-  'laptop',
-  'calendar',
-  'clock',
-];
+  'briefcase-outline',
+  'home-outline',
+  'cafe-outline',
+  'sunny-outline',
+  'moon-outline',
+  'star-outline',
+  'heart-outline',
+  'flash-outline',
+  'book-outline',
+  'musical-notes-outline',
+  'car-outline',
+  'barbell-outline',
+  'laptop-outline',
+  'calendar-outline',
+  'alarm-outline',
+  'airplane-outline',
+  'bicycle-outline',
+  'restaurant-outline',
+  'fitness-outline',
+  'school-outline',
+] as const;
+
+export type PresetIconName = typeof PRESET_ICONS[number];
 
 export const ALARM_SOUNDS = [
   { id: 'default', label: 'Default' },
