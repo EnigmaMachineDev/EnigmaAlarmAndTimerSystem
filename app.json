@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#0a0f0a"
     },
     "ios": {
       "supportsTablet": false,
@@ -20,7 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0f172a"
+        "backgroundColor": "#0a0f0a"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -32,7 +32,10 @@
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK",
         "android.permission.USE_FULL_SCREEN_INTENT",
-        "android.permission.ACCESS_NOTIFICATION_POLICY"
+        "android.permission.ACCESS_NOTIFICATION_POLICY",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -45,8 +48,8 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#3b82f6",
-          "defaultChannel": "alarm"
+          "color": "#4a8c4a",
+          "defaultChannel": "default"
         }
       ],
       [

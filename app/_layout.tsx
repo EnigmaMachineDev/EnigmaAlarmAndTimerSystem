@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import RNAlarmModule from 'react-native-alarmageddon';
 import { useAppStore } from '../src/store/useAppStore';
 import { loadAppData } from '../src/storage/fileStorage';
 import { setupNotificationChannels, requestNotificationPermissions } from '../src/engine/scheduler';
@@ -30,6 +31,17 @@ export default function RootLayout() {
     setupNotificationChannels();
     requestNotificationPermissions();
     registerBackgroundTasks();
+
+    // Listen for alarm fire events (e.g. to navigate to a dismiss screen in future)
+    const sub = RNAlarmModule.onAlarmStateChange((alarmId) => {
+      if (alarmId) {
+        console.log('[Alarm] Firing:', alarmId);
+      } else {
+        console.log('[Alarm] Stopped/dismissed');
+      }
+    });
+
+    return () => sub.remove();
   }, []);
 
   return (

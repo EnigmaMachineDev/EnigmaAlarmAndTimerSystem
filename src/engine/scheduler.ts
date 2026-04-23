@@ -1,21 +1,13 @@
 import * as Notifications from 'expo-notifications';
+import RNAlarmModule from 'react-native-alarmageddon';
 import { Platform } from 'react-native';
 import { Alarm } from '../types';
-import { NOTIFICATION_CHANNEL_ALARM, NOTIFICATION_CHANNEL_DEFAULT } from '../constants/defaults';
+import { NOTIFICATION_CHANNEL_DEFAULT } from '../constants/defaults';
+
+// ─── General notification channel (rules, info) ───────────────────────────────
 
 export async function setupNotificationChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
-
-  await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ALARM, {
-    name: 'Alarms',
-    importance: Notifications.AndroidImportance.MAX,
-    bypassDnd: true,
-    sound: 'default',
-    vibrationPattern: [0, 250, 250, 250],
-    enableVibrate: true,
-    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    showBadge: true,
-  });
 
   await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_DEFAULT, {
     name: 'General',
@@ -25,79 +17,88 @@ export async function setupNotificationChannels(): Promise<void> {
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  if (existingStatus === 'granted') return true;
+  try {
+    // Request alarm-specific permissions (USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM)
+    const alarmGranted = await RNAlarmModule.ensurePermissions();
+    if (!alarmGranted) return false;
 
-  const { status } = await Notifications.requestPermissionsAsync({
-    android: {
-      allowAlert: true,
-      allowBadge: true,
-      allowSound: true,
-    },
-  });
-  return status === 'granted';
+    // Also request notification display permissions (Android 13+)
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    if (existingStatus === 'granted') return true;
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === 'granted';
+  } catch (err) {
+    console.error('[Scheduler] Permission request error:', err);
+    return false;
+  }
 }
 
-export async function scheduleAlarmNotification(alarm: Alarm, date: string): Promise<string | null> {
+// ─── Alarm scheduling via AlarmManager (bypasses DND, full-screen intent) ─────
+
+// Stable ID derived from alarm id + date so we can cancel by the same id later
+function alarmScheduleId(alarmId: string, date: string): string {
+  return `${alarmId}_${date.replace(/-/g, '')}`;
+}
+
+export async function scheduleAlarm(alarm: Alarm, date: string): Promise<boolean> {
   try {
     const [hours, minutes] = alarm.time.split(':').map(Number);
-    const scheduledDate = new Date(date + 'T00:00:00');
+    const scheduledDate = new Date(`${date}T00:00:00`);
     scheduledDate.setHours(hours, minutes, 0, 0);
 
-    // Don't schedule alarms in the past
-    if (scheduledDate.getTime() <= Date.now()) return null;
+    if (scheduledDate.getTime() <= Date.now()) return false;
 
-    const notificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: alarm.label || 'Alarm',
-        body: `Alarm set for ${alarm.time}`,
-        sound: true,
-        data: { alarmId: alarm.id, date },
-        ...(Platform.OS === 'android' && {
-          channelId: NOTIFICATION_CHANNEL_ALARM,
-          priority: Notifications.AndroidNotificationPriority.MAX,
-        }),
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: scheduledDate,
-      },
+    await RNAlarmModule.scheduleAlarm({
+      id: alarmScheduleId(alarm.id, date),
+      datetimeISO: scheduledDate.toISOString(),
+      title: alarm.label || 'Alarm',
+      body: alarm.label ? alarm.label : `Scheduled for ${alarm.time}`,
+      snoozeEnabled: true,
+      snoozeInterval: alarm.snoozeDurationMinutes,
     });
 
-    return notificationId;
+    return true;
   } catch (err) {
     console.error('[Scheduler] Failed to schedule alarm:', err);
-    return null;
+    return false;
   }
 }
 
-export async function cancelAlarmNotification(notificationId: string): Promise<void> {
+export async function cancelAlarm(alarmId: string, date: string): Promise<void> {
   try {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
+    await RNAlarmModule.cancelAlarm(alarmScheduleId(alarmId, date));
   } catch (err) {
-    console.error('[Scheduler] Failed to cancel notification:', err);
+    console.error('[Scheduler] Failed to cancel alarm:', err);
   }
 }
 
-export async function cancelAllAlarmNotifications(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+export async function cancelAllAlarmsForDay(alarms: Alarm[], date: string): Promise<void> {
+  for (const alarm of alarms) {
+    await cancelAlarm(alarm.id, date);
+  }
 }
 
 export async function scheduleAlarmsForDay(alarms: Alarm[], date: string): Promise<void> {
   for (const alarm of alarms) {
     if (!alarm.enabled) continue;
-    await scheduleAlarmNotification(alarm, date);
+    await scheduleAlarm(alarm, date);
   }
 }
 
+// ─── General (non-alarm) notifications via expo-notifications ─────────────────
+
 export async function sendImmediateNotification(title: string, body: string): Promise<void> {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      sound: true,
-      ...(Platform.OS === 'android' && { channelId: NOTIFICATION_CHANNEL_DEFAULT }),
-    },
-    trigger: null,
-  });
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        sound: true,
+        ...(Platform.OS === 'android' && { channelId: NOTIFICATION_CHANNEL_DEFAULT }),
+      },
+      trigger: null,
+    });
+  } catch (err) {
+    console.error('[Scheduler] Failed to send notification:', err);
+  }
 }
