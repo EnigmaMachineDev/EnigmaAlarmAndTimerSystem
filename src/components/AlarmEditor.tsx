@@ -16,6 +16,7 @@ import { Alarm } from '../types';
 import { generateId } from '../utils/uuid';
 import { formatTime } from '../utils/dateUtils';
 import { TimePicker } from './TimePicker';
+import { SoundPicker } from './SoundPicker';
 
 interface Props {
   alarms: Alarm[];
@@ -118,6 +119,12 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
                     onChangeText={(v) => setEditing({ ...editing, label: v })}
                     placeholder="Wake up"
                     placeholderTextColor={Colors.textMuted}
+                  />
+                </Field>
+                <Field label="Sound">
+                  <SoundPicker
+                    value={editing.sound}
+                    onChange={(v) => setEditing({ ...editing, sound: v })}
                   />
                 </Field>
                 <Field label="Snooze (minutes)">

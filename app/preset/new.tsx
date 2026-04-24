@@ -90,8 +90,8 @@ export default function NewPresetScreen() {
 
         {/* Icon */}
         <Text style={styles.fieldLabel}>Icon</Text>
-        <TouchableOpacity style={styles.iconPickerBtn} onPress={() => setIconPickerVisible(true)}>
-          <Ionicons name={icon as any} size={28} color={Colors.primaryLight} />
+        <TouchableOpacity style={[styles.iconPickerBtn, { borderColor: color + '66' }]} onPress={() => setIconPickerVisible(true)}>
+          <Ionicons name={icon as any} size={28} color={color} />
           <Text style={styles.iconPickerChange}>Change icon ›</Text>
         </TouchableOpacity>
 
@@ -122,7 +122,7 @@ export default function NewPresetScreen() {
                   style={[styles.iconOption, icon === item && styles.iconOptionSelected]}
                   onPress={() => { setIcon(item); setIconPickerVisible(false); }}
                 >
-                  <Ionicons name={item as any} size={24} color={icon === item ? Colors.primaryLight : Colors.textSecondary} />
+                  <Ionicons name={item as any} size={24} color={icon === item ? color : Colors.textSecondary} />
                 </TouchableOpacity>
               )}
             />

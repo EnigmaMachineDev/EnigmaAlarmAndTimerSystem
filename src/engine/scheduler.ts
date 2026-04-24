@@ -41,25 +41,35 @@ function alarmScheduleId(alarmId: string, date: string): string {
   return `${alarmId}_${date.replace(/-/g, '')}`;
 }
 
+// Format a Date as a local ISO string WITHOUT timezone suffix, as required by alarmageddon
+// e.g. "2025-01-15T08:30:00" — NOT "2025-01-15T12:30:00.000Z"
+function toLocalISOString(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export async function scheduleAlarm(alarm: Alarm, date: string): Promise<boolean> {
   try {
     const [hours, minutes] = alarm.time.split(':').map(Number);
-    // Build the target time using local date components to avoid UTC offset issues
     const [year, month, day] = date.split('-').map(Number);
     const scheduledDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
-    if (scheduledDate.getTime() <= Date.now()) return false;
+    if (scheduledDate.getTime() <= Date.now()) {
+      console.log(`[Scheduler] Skipping past alarm "${alarm.label || alarm.time}" (${toLocalISOString(scheduledDate)})`);
+      return false;
+    }
 
+    const datetimeISO = toLocalISOString(scheduledDate);
     await RNAlarmModule.scheduleAlarm({
       id: alarmScheduleId(alarm.id, date),
-      datetimeISO: scheduledDate.toISOString(),
+      datetimeISO,
       title: alarm.label || 'Alarm',
       body: alarm.label ? alarm.label : `Scheduled for ${alarm.time}`,
       snoozeEnabled: true,
       snoozeInterval: alarm.snoozeDurationMinutes,
     });
 
-    console.log(`[Scheduler] Scheduled alarm "${alarm.label || alarm.time}" for ${scheduledDate.toLocaleString()}`);
+    console.log(`[Scheduler] Scheduled alarm "${alarm.label || alarm.time}" id=${alarmScheduleId(alarm.id, date)} at ${datetimeISO}`);
     return true;
   } catch (err) {
     console.error('[Scheduler] Failed to schedule alarm:', err);
@@ -77,8 +87,16 @@ export async function scheduleAlarmsForToday(data: AppData): Promise<void> {
   const presetId = override ? override.presetId : data.schedule[dayKey];
   const preset = data.presets.find((p) => p.id === presetId);
 
+  // Cancel ALL previously scheduled alarms for every preset for today
+  // so removed or disabled alarms don't continue to fire
+  for (const p of data.presets) {
+    await cancelAllAlarmsForDay(p.alarms, today);
+  }
+  const todayEphemeral = data.ephemeralAlarms.filter((e) => e.date === today);
+  await cancelAllAlarmsForDay(todayEphemeral.map((e) => e.alarm), today);
+
   if (!preset) {
-    console.log('[Scheduler] No preset for today — nothing to schedule');
+    console.log('[Scheduler] No preset for today — all alarms cancelled');
     return;
   }
 

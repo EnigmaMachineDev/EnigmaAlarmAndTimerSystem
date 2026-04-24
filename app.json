@@ -58,7 +58,8 @@
           "locationAlwaysAndWhenInUsePermission": false
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-audio"
     ],
     "extra": {
       "router": {},
