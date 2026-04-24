@@ -1,10 +1,8 @@
 import { AppData, Settings, Schedule } from '../types';
 
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 
 export const DEFAULT_SETTINGS: Settings = {
-  dayStartTime: '06:00',
-  eveningCheckTime: '20:00',
   defaultSnoozeDurationMinutes: 10,
   timeFormat: '12h',
   lastExportedAt: null,
@@ -92,4 +90,3 @@ export const NOTIFICATION_CHANNEL_ALARM = 'alarm';
 export const NOTIFICATION_CHANNEL_DEFAULT = 'default';
 
 export const BACKGROUND_TASK_DAY_START = 'ENIGMA_DAY_START_TASK';
-export const BACKGROUND_TASK_EVENING_CHECK = 'ENIGMA_EVENING_CHECK_TASK';

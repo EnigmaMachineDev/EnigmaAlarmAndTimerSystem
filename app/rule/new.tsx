@@ -23,10 +23,12 @@ import {
 } from '../../src/types';
 import { RuleConditionBuilder } from '../../src/components/RuleConditionBuilder';
 import { RuleActionBuilder } from '../../src/components/RuleActionBuilder';
+import { TimePicker } from '../../src/components/TimePicker';
 
 const TRIGGERS: { value: RuleTrigger; label: string; description: string }[] = [
-  { value: 'START_OF_DAY', label: 'Start of Day', description: 'Fires at your configured day start time' },
-  { value: 'END_OF_DAY', label: 'End of Day', description: 'Fires at your configured evening check time' },
+  { value: 'START_OF_DAY', label: 'Start of Day', description: 'Fires daily at midnight when the day rolls over' },
+  { value: 'TIME_OF_DAY', label: 'Time of Day', description: 'Fires daily at a specific time you choose' },
+  { value: 'END_OF_DAY', label: 'End of Day', description: 'Fires daily at midnight before the day ends (alias for midnight + 1 day)' },
   { value: 'PRESET_ACTIVATED', label: 'Preset Activated', description: 'Fires when a preset becomes active' },
   { value: 'PRESET_ASSIGNED', label: 'Preset Assigned', description: "Fires when tomorrow's preset is set or changed" },
 ];
@@ -37,6 +39,7 @@ export default function NewRuleScreen() {
 
   const [name, setName] = useState('');
   const [trigger, setTrigger] = useState<RuleTrigger>('START_OF_DAY');
+  const [triggerTime, setTriggerTime] = useState('08:00');
   const [conditionLogic, setConditionLogic] = useState<ConditionLogic>('AND');
   const [conditions, setConditions] = useState<RuleCondition[]>([]);
   const [actions, setActions] = useState<RuleAction[]>([]);
@@ -56,6 +59,7 @@ export default function NewRuleScreen() {
       name: name.trim(),
       enabled: true,
       trigger,
+      ...(trigger === 'TIME_OF_DAY' && { triggerTime }),
       conditionLogic,
       conditions,
       actions,
@@ -96,6 +100,13 @@ export default function NewRuleScreen() {
           </View>
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
+
+        {trigger === 'TIME_OF_DAY' && (
+          <>
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Trigger Time</Text>
+            <TimePicker value={triggerTime} onChange={setTriggerTime} />
+          </>
+        )}
 
         <RuleConditionBuilder conditions={conditions} onChange={setConditions} conditionLogic={conditionLogic} onLogicChange={setConditionLogic} />
         <RuleActionBuilder actions={actions} onChange={setActions} />

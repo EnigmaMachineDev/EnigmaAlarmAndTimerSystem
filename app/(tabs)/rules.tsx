@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
 import { Rule } from '../../src/types';
+import { formatTime } from '../../src/utils/dateUtils';
 
 export default function RulesScreen() {
   const router = useRouter();
@@ -27,9 +28,12 @@ export default function RulesScreen() {
     ]);
   }
 
+  const use12h = useAppStore((s) => s.settings.timeFormat === '12h');
+
   const TRIGGER_LABELS: Record<string, string> = {
-    START_OF_DAY: 'Start of Day',
-    END_OF_DAY: 'End of Day',
+    START_OF_DAY: 'Start of Day (midnight)',
+    END_OF_DAY: 'End of Day (midnight)',
+    TIME_OF_DAY: 'Time of Day',
     PRESET_ACTIVATED: 'Preset Activated',
     PRESET_ASSIGNED: 'Preset Assigned',
   };
@@ -70,7 +74,10 @@ export default function RulesScreen() {
                 <View style={styles.ruleMeta}>
                   <View style={styles.triggerChip}>
                     <Ionicons name="flash-outline" size={11} color={Colors.primary} />
-                    <Text style={styles.triggerChipText}>{TRIGGER_LABELS[rule.trigger] ?? rule.trigger}</Text>
+                    <Text style={styles.triggerChipText}>
+                      {TRIGGER_LABELS[rule.trigger] ?? rule.trigger}
+                      {rule.trigger === 'TIME_OF_DAY' && rule.triggerTime ? ` @ ${formatTime(rule.triggerTime, use12h)}` : ''}
+                    </Text>
                   </View>
                   <Text style={styles.conditionCount}>
                     {rule.conditions.length} condition{rule.conditions.length !== 1 ? 's' : ''}

@@ -38,6 +38,8 @@ export default function TodayScreen() {
   const today = todayDateString();
   const tomorrow = dateStringForDaysFromNow(1);
   const resolved = getResolvedDay(today);
+  const tomorrowResolved = getResolvedDay(tomorrow);
+  const tomorrowPresetName = tomorrowResolved.preset?.name ?? 'No preset';
 
   // Tick every second for timers/stopwatches
   useEffect(() => {
@@ -135,7 +137,7 @@ export default function TodayScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickBtnSecondary} onPress={() => router.push({ pathname: '/override', params: { date: tomorrow } })}>
             <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.quickBtnSecondaryText}> Tomorrow</Text>
+            <Text style={styles.quickBtnSecondaryText}> Tomorrow: {tomorrowPresetName}</Text>
           </TouchableOpacity>
         </View>
 

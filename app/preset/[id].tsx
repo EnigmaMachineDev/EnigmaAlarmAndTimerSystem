@@ -28,6 +28,7 @@ export default function EditPresetScreen() {
   const presets = useAppStore((s) => s.presets);
   const updatePreset = useAppStore((s) => s.updatePreset);
   const getResolvedDay = useAppStore((s) => s.getResolvedDay);
+  const use12h = useAppStore((s) => s.settings.timeFormat === '12h');
 
   const preset = presets.find((p) => p.id === id);
 
@@ -123,7 +124,7 @@ export default function EditPresetScreen() {
           <Text style={styles.iconPickerChange}>Change icon ›</Text>
         </TouchableOpacity>
 
-        <AlarmEditor alarms={alarms} onChange={setAlarms} />
+        <AlarmEditor alarms={alarms} onChange={setAlarms} use12h={use12h} />
         <TimerEditor timers={timers} onChange={setTimers} />
         <StopwatchEditor stopwatches={stopwatches} onChange={setStopwatches} />
 

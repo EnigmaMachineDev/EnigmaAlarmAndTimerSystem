@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../src/store/useAppStore';
 import { Colors } from '../src/constants/colors';
 import { todayDateString, dateStringForDaysFromNow } from '../src/utils/dateUtils';
@@ -30,8 +31,10 @@ export default function OverrideScreen() {
   const getOverrideForDate = useAppStore((s) => s.getOverrideForDate);
   const getCustomizationForDate = useAppStore((s) => s.getCustomizationForDate);
 
+  const getResolvedDay = useAppStore((s) => s.getResolvedDay);
   const existingOverride = getOverrideForDate(targetDate);
   const existingCustomization = getCustomizationForDate(targetDate);
+  const currentPreset = getResolvedDay(targetDate).preset;
 
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(existingOverride?.presetId ?? null);
   const [reason, setReason] = useState(existingOverride?.reason ?? '');
@@ -89,6 +92,14 @@ export default function OverrideScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        {currentPreset && (
+          <View style={styles.currentPresetBanner}>
+            <View style={[styles.currentPresetDot, { backgroundColor: currentPreset.color }]} />
+            <Text style={styles.currentPresetLabel}>Currently: </Text>
+            <Ionicons name={currentPreset.icon as any} size={14} color={currentPreset.color} />
+            <Text style={[styles.currentPresetName, { color: currentPreset.color }]}> {currentPreset.name}</Text>
+          </View>
+        )}
         <Text style={styles.fieldLabel}>Choose Preset</Text>
         {presets.length === 0 && (
           <View style={styles.emptyPresets}>
@@ -163,4 +174,8 @@ const styles = StyleSheet.create({
   textInput: { backgroundColor: Colors.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
   removeBtn: { marginTop: 32, backgroundColor: Colors.error + '22', borderWidth: 1, borderColor: Colors.error, borderRadius: 12, padding: 14, alignItems: 'center' },
   removeBtnText: { color: Colors.error, fontWeight: '700', fontSize: 15 },
+  currentPresetBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, borderRadius: 10, padding: 12, marginBottom: 16, gap: 6 },
+  currentPresetDot: { width: 10, height: 10, borderRadius: 5 },
+  currentPresetLabel: { fontSize: 13, color: Colors.textMuted },
+  currentPresetName: { fontSize: 13, fontWeight: '700' },
 });

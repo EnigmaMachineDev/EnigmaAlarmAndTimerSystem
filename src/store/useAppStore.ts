@@ -62,6 +62,9 @@ interface AppStore extends AppData {
   markEphemeralFired: (id: string) => void;
   cleanupEphemeral: () => void;
 
+  // Overrides
+  pruneOldOverrides: () => void;
+
   // Resolved day selectors
   getResolvedDay: (date: string) => ResolvedDay;
 
@@ -254,6 +257,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ephemeralAlarms: s.ephemeralAlarms.filter(
           (e) => !e.fired && e.date >= today
         ),
+        overrides: s.overrides.filter((o) => o.date >= today),
+      };
+      persist(next);
+      return next;
+    }),
+
+  pruneOldOverrides: () =>
+    set((s) => {
+      const today = todayDateString();
+      const next = {
+        ...s,
+        overrides: s.overrides.filter((o) => o.date >= today),
       };
       persist(next);
       return next;

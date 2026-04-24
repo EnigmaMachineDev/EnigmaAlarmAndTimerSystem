@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/useAppStore';
 import { Colors } from '../../src/constants/colors';
 import { exportAppData, readImportFile, resetAppData, saveAppDataImmediate } from '../../src/storage/fileStorage';
-import { TimePicker } from '../../src/components/TimePicker';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -115,22 +114,6 @@ export default function SettingsScreen() {
         {/* Time Settings */}
         <Text style={styles.sectionTitle}>Time</Text>
         <View style={styles.card}>
-          <View style={styles.timePickerRow}>
-            <Text style={styles.rowLabel}>Day Start</Text>
-            <TimePicker
-              value={settings.dayStartTime}
-              onChange={(v) => updateSettings({ dayStartTime: v })}
-            />
-          </View>
-          <Divider />
-          <View style={styles.timePickerRow}>
-            <Text style={styles.rowLabel}>Evening Check</Text>
-            <TimePicker
-              value={settings.eveningCheckTime}
-              onChange={(v) => updateSettings({ eveningCheckTime: v })}
-            />
-          </View>
-          <Divider />
           <TouchableOpacity style={styles.row} onPress={() => { setSnoozeInput(String(settings.defaultSnoozeDurationMinutes)); setSnoozeModalVisible(true); }}>
             <Text style={styles.rowLabel}>Default Snooze</Text>
             <View style={styles.rowRight}>
@@ -163,7 +146,7 @@ export default function SettingsScreen() {
           <View style={styles.infoRow}>
             <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} style={{ marginTop: 1 }} />
             <Text style={styles.infoText}>
-              Alarms fire as scheduled notifications. For reliable alarms, ensure Battery Optimization is disabled for Enigma in Android Settings.
+              Alarms use Android AlarmManager for reliable wake-from-sleep firing with full-screen intent. Ensure Battery Optimization is disabled for Enigma in Android Settings → Apps → Enigma → Battery.
             </Text>
           </View>
         </View>

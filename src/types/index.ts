@@ -9,6 +9,7 @@ export type TimeFormat = '12h' | '24h';
 export type RuleTrigger =
   | 'START_OF_DAY'
   | 'END_OF_DAY'
+  | 'TIME_OF_DAY'
   | 'PRESET_ACTIVATED'
   | 'PRESET_ASSIGNED';
 
@@ -157,6 +158,7 @@ export interface Rule {
   name: string;
   enabled: boolean;
   trigger: RuleTrigger;
+  triggerTime?: string; // "HH:MM" — only used when trigger === 'TIME_OF_DAY'
   conditionLogic: ConditionLogic; // 'AND' | 'OR'
   conditions: RuleCondition[];
   actions: RuleAction[];
@@ -165,8 +167,6 @@ export interface Rule {
 // ─── Settings ────────────────────────────────────────────────────────────────
 
 export interface Settings {
-  dayStartTime: string; // "HH:MM"
-  eveningCheckTime: string; // "HH:MM"
   defaultSnoozeDurationMinutes: number;
   timeFormat: TimeFormat;
   lastExportedAt: string | null; // ISO timestamp or null

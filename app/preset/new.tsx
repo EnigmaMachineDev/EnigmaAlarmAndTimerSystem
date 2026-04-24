@@ -25,6 +25,7 @@ import { StopwatchEditor } from '../../src/components/StopwatchEditor';
 export default function NewPresetScreen() {
   const router = useRouter();
   const addPreset = useAppStore((s) => s.addPreset);
+  const use12h = useAppStore((s) => s.settings.timeFormat === '12h');
 
   const [name, setName] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[0]);
@@ -95,7 +96,7 @@ export default function NewPresetScreen() {
         </TouchableOpacity>
 
         {/* Alarms */}
-        <AlarmEditor alarms={alarms} onChange={setAlarms} />
+        <AlarmEditor alarms={alarms} onChange={setAlarms} use12h={use12h} />
 
         {/* Timers */}
         <TimerEditor timers={timers} onChange={setTimers} />

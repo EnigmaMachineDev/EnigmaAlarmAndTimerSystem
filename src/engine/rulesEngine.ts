@@ -152,7 +152,16 @@ export async function runRulesEngine(
   const collectedEphemeral: EphemeralAlarm[] = [];
   const switchPresetActions: Array<{ presetId: string }> = [];
 
-  const enabledRules = data.rules.filter((r) => r.enabled && r.trigger === trigger);
+  const now = getCurrentTimeString();
+  const enabledRules = data.rules.filter((r) => {
+    if (!r.enabled) return false;
+    if (r.trigger !== trigger) return false;
+    // For TIME_OF_DAY rules, only fire when current time matches triggerTime
+    if (r.trigger === 'TIME_OF_DAY') {
+      return r.triggerTime === now;
+    }
+    return true;
+  });
 
   for (const rule of enabledRules) {
     const conditionsMet = evaluateConditions(rule.conditions, rule.conditionLogic ?? 'AND', data);

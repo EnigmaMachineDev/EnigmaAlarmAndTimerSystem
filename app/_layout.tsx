@@ -25,9 +25,10 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const hydrate = useAppStore((s) => s.hydrate);
+  const pruneOldOverrides = useAppStore((s) => s.pruneOldOverrides);
 
   useEffect(() => {
-    loadAppData().then(hydrate);
+    loadAppData().then((data) => { hydrate(data); pruneOldOverrides(); });
     setupNotificationChannels();
     requestNotificationPermissions();
     registerBackgroundTasks();
