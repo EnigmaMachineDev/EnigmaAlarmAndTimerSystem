@@ -74,7 +74,7 @@ async function dispatchAction(
 
   switch (action.type) {
     case 'ADD_ALARM': {
-      const targetDate = action.tonightOnly ? today : today;
+      const targetDate = today;
       // Deduplicate: skip if alarm with same time+label already exists for that date
       const existingEphemeral = [
         ...data.ephemeralAlarms,

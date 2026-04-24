@@ -28,7 +28,7 @@ const ACTION_TYPES: { value: ActionType; label: string; description: string }[] 
 
 function blankAction(type: ActionType): RuleAction {
   switch (type) {
-    case 'ADD_ALARM': return { type: 'ADD_ALARM', time: '22:00', label: '', tonightOnly: true };
+    case 'ADD_ALARM': return { type: 'ADD_ALARM', time: '22:00', label: '' };
     case 'ADD_TIMER': return { type: 'ADD_TIMER', label: '', durationSeconds: 1500 };
     case 'SEND_NOTIFICATION': return { type: 'SEND_NOTIFICATION', message: '' };
     case 'SWITCH_PRESET': return { type: 'SWITCH_PRESET', presetId: '' };
@@ -141,15 +141,6 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
                       placeholder="Bedtime"
                       placeholderTextColor={Colors.textMuted}
                     />
-                    <View style={styles.switchRow}>
-                      <Text style={styles.switchLabel}>Tonight only (ephemeral)</Text>
-                      <Switch
-                        value={editingAction.tonightOnly}
-                        onValueChange={(v) => updateAction({ tonightOnly: v } as any)}
-                        trackColor={{ false: Colors.alarmOff, true: Colors.alarmOn }}
-                        thumbColor={Colors.text}
-                      />
-                    </View>
                   </>
                 )}
 

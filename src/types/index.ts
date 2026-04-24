@@ -128,7 +128,6 @@ export interface AddAlarmAction {
   type: 'ADD_ALARM';
   time: string;
   label: string;
-  tonightOnly: boolean;
 }
 
 export interface AddTimerAction {
