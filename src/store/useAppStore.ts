@@ -23,6 +23,7 @@ import {
 import { DEFAULT_APP_DATA } from '../constants/defaults';
 import { saveAppData } from '../storage/fileStorage';
 import { todayDateString, getDayKey } from '../utils/dateUtils';
+import { scheduleAlarmsForToday } from '../engine/scheduler';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         presets: s.presets.map((p) => (p.id === id ? { ...p, ...patch } : p)),
       };
       persist(next);
+      scheduleAlarmsForToday(next);
       return next;
     }),
 
@@ -151,6 +153,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => {
       const next = { ...s, schedule: { ...s.schedule, [day]: presetId } };
       persist(next);
+      // If this day is today, reschedule alarms
+      if (day === (getDayKey(todayDateString()) as DayKey)) {
+        scheduleAlarmsForToday(next);
+      }
       return next;
     }),
 
@@ -160,13 +166,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const filtered = s.overrides.filter((o) => o.date !== override.date);
       const next = { ...s, overrides: [...filtered, override] };
       persist(next);
+      if (override.date === todayDateString()) scheduleAlarmsForToday(next);
       return next;
     }),
 
   removeOverride: (id) =>
     set((s) => {
+      const removed = s.overrides.find((o) => o.id === id);
       const next = { ...s, overrides: s.overrides.filter((o) => o.id !== id) };
       persist(next);
+      if (removed?.date === todayDateString()) scheduleAlarmsForToday(next);
       return next;
     }),
 
@@ -234,6 +243,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => {
       const next = { ...s, ephemeralAlarms: [...s.ephemeralAlarms, item] };
       persist(next);
+      if (item.date === todayDateString()) scheduleAlarmsForToday(next);
       return next;
     }),
 

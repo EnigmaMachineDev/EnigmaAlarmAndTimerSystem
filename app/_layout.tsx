@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 import RNAlarmModule from 'react-native-alarmageddon';
 import { useAppStore } from '../src/store/useAppStore';
 import { loadAppData } from '../src/storage/fileStorage';
-import { setupNotificationChannels, requestNotificationPermissions } from '../src/engine/scheduler';
+import { setupNotificationChannels, requestNotificationPermissions, scheduleAlarmsForToday } from '../src/engine/scheduler';
 import { registerBackgroundTasks } from '../src/engine/backgroundTask';
 
 // Must import background task definitions so TaskManager registers them
@@ -28,7 +28,12 @@ export default function RootLayout() {
   const pruneOldOverrides = useAppStore((s) => s.pruneOldOverrides);
 
   useEffect(() => {
-    loadAppData().then((data) => { hydrate(data); pruneOldOverrides(); });
+    loadAppData().then((data) => {
+      hydrate(data);
+      pruneOldOverrides();
+      // Schedule alarms for today immediately on launch
+      scheduleAlarmsForToday(data);
+    });
     setupNotificationChannels();
     requestNotificationPermissions();
     registerBackgroundTasks();
