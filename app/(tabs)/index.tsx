@@ -74,9 +74,9 @@ export default function TodayScreen() {
     return now - active.startTimestamp;
   }
 
-  function sourceBadge(layer: 'preset' | 'customization' | 'ephemeral') {
+  function sourceBadge(layer: 'preset' | 'customization' | 'rule' | 'ephemeral') {
     if (layer === 'customization') return <Ionicons name="create-outline" size={14} color={Colors.info} />;
-    if (layer === 'ephemeral') return <Ionicons name="flash-outline" size={14} color={Colors.warning} />;
+    if (layer === 'rule' || layer === 'ephemeral') return <Ionicons name="flash-outline" size={14} color={Colors.warning} />;
     return null;
   }
 
@@ -159,7 +159,7 @@ export default function TodayScreen() {
                   onValueChange={() => toggleAlarm(alarm)}
                   trackColor={{ false: Colors.alarmOff, true: Colors.alarmOn }}
                   thumbColor={Colors.text}
-                  disabled={alarm.sourceLayer === 'ephemeral'}
+                  disabled={alarm.sourceLayer === 'rule'}
                 />
               </View>
             ))}

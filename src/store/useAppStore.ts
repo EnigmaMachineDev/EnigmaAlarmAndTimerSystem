@@ -8,7 +8,7 @@ import {
   Schedule,
   DayOverride,
   DayCustomization,
-  EphemeralAlarm,
+  RuleAlarm,
   Rule,
   Settings,
   DayKey,
@@ -23,7 +23,7 @@ import {
 import { DEFAULT_APP_DATA } from '../constants/defaults';
 import { saveAppData } from '../storage/fileStorage';
 import { todayDateString, getDayKey } from '../utils/dateUtils';
-import { scheduleAlarmsForToday } from '../engine/scheduler';
+import { scheduleAlarmsForWeek, cancelAllAlarmsForDay } from '../engine/scheduler';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -58,11 +58,6 @@ interface AppStore extends AppData {
   deleteRule: (id: string) => void;
   toggleRule: (id: string) => void;
 
-  // Ephemeral Alarms
-  addEphemeralAlarm: (item: EphemeralAlarm) => void;
-  markEphemeralFired: (id: string) => void;
-  cleanupEphemeral: () => void;
-
   // Overrides
   pruneOldOverrides: () => void;
 
@@ -92,7 +87,7 @@ function persist(state: AppData) {
     overrides: state.overrides,
     dayCustomizations: state.dayCustomizations,
     rules: state.rules,
-    ephemeralAlarms: state.ephemeralAlarms,
+    ruleAlarms: state.ruleAlarms,
   });
 }
 
@@ -130,12 +125,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
         presets: s.presets.map((p) => (p.id === id ? { ...p, ...patch } : p)),
       };
       persist(next);
-      scheduleAlarmsForToday(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
   deletePreset: (id) =>
     set((s) => {
+      const deletedPreset = s.presets.find((p) => p.id === id);
       const next = {
         ...s,
         presets: s.presets.filter((p) => p.id !== id),
@@ -145,6 +141,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
         overrides: s.overrides.filter((o) => o.presetId !== id),
       };
       persist(next);
+      // Cancel deleted preset's alarms across all 7 days before rescheduling,
+      // since scheduleAlarmsForWeek only cancels alarms still in data.presets.
+      if (deletedPreset) {
+        (async () => {
+          for (let offset = 0; offset < 7; offset++) {
+            const d = new Date();
+            d.setDate(d.getDate() + offset);
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            await cancelAllAlarmsForDay(deletedPreset.alarms, dateStr);
+          }
+          scheduleAlarmsForWeek(next);
+        })();
+      } else {
+        scheduleAlarmsForWeek(next);
+      }
       return next;
     }),
 
@@ -153,10 +164,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => {
       const next = { ...s, schedule: { ...s.schedule, [day]: presetId } };
       persist(next);
-      // If this day is today, reschedule alarms
-      if (day === (getDayKey(todayDateString()) as DayKey)) {
-        scheduleAlarmsForToday(next);
-      }
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -166,7 +174,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const filtered = s.overrides.filter((o) => o.date !== override.date);
       const next = { ...s, overrides: [...filtered, override] };
       persist(next);
-      if (override.date === todayDateString()) scheduleAlarmsForToday(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -175,7 +183,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const removed = s.overrides.find((o) => o.id === id);
       const next = { ...s, overrides: s.overrides.filter((o) => o.id !== id) };
       persist(next);
-      if (removed?.date === todayDateString()) scheduleAlarmsForToday(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -187,6 +195,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const filtered = s.dayCustomizations.filter((c) => c.date !== customization.date);
       const next = { ...s, dayCustomizations: [...filtered, customization] };
       persist(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -197,6 +206,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         dayCustomizations: s.dayCustomizations.filter((c) => c.id !== id),
       };
       persist(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -208,6 +218,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => {
       const next = { ...s, rules: [...s.rules, rule] };
       persist(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -218,6 +229,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         rules: s.rules.map((r) => (r.id === id ? { ...r, ...patch } : r)),
       };
       persist(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -225,6 +237,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((s) => {
       const next = { ...s, rules: s.rules.filter((r) => r.id !== id) };
       persist(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -235,41 +248,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         rules: s.rules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)),
       };
       persist(next);
-      return next;
-    }),
-
-  // ── Ephemeral Alarms ───────────────────────────────────────────────────────
-  addEphemeralAlarm: (item) =>
-    set((s) => {
-      const next = { ...s, ephemeralAlarms: [...s.ephemeralAlarms, item] };
-      persist(next);
-      if (item.date === todayDateString()) scheduleAlarmsForToday(next);
-      return next;
-    }),
-
-  markEphemeralFired: (id) =>
-    set((s) => {
-      const next = {
-        ...s,
-        ephemeralAlarms: s.ephemeralAlarms.map((e) =>
-          e.id === id ? { ...e, fired: true } : e
-        ),
-      };
-      persist(next);
-      return next;
-    }),
-
-  cleanupEphemeral: () =>
-    set((s) => {
-      const today = todayDateString();
-      const next = {
-        ...s,
-        ephemeralAlarms: s.ephemeralAlarms.filter(
-          (e) => !e.fired && e.date >= today
-        ),
-        overrides: s.overrides.filter((o) => o.date >= today),
-      };
-      persist(next);
+      scheduleAlarmsForWeek(next);
       return next;
     }),
 
@@ -348,25 +327,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
       ];
     }
 
-    // Apply ephemeral layer
-    const ephemeral = s.ephemeralAlarms.filter((e) => e.date === date && !e.fired);
-    const ephemeralAlarmItems: ResolvedDayAlarm[] = ephemeral.map((e) => ({
-      ...e.alarm,
-      sourceLayer: 'ephemeral' as const,
-    }));
-
-    // Deduplicate ephemeral by time+label
+    // Apply rule alarms layer (deduplicate by time+label against preset/customization alarms)
     const existingKeys = new Set(alarms.map((a) => `${a.time}|${a.label}`));
-    const uniqueEphemeral = ephemeralAlarmItems.filter(
-      (e) => !existingKeys.has(`${e.time}|${e.label}`)
-    );
+    const ruleAlarmItems: ResolvedDayAlarm[] = s.ruleAlarms
+      .filter((ra) => ra.date === date)
+      .filter((ra) => !existingKeys.has(`${ra.alarm.time}|${ra.alarm.label}`))
+      .map((ra) => ({ ...ra.alarm, sourceLayer: 'rule' as const }));
 
     return {
       date,
       preset,
       isOverridden: !!override,
       isCustomized: !!customization,
-      alarms: [...alarms, ...uniqueEphemeral],
+      alarms: [...alarms, ...ruleAlarmItems],
       timers,
       stopwatches,
     };

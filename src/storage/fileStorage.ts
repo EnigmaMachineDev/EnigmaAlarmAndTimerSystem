@@ -64,7 +64,7 @@ export async function resetAppData(): Promise<AppData> {
 export async function exportAppData(data: AppData): Promise<string> {
   const exportData: AppData = {
     ...data,
-    ephemeralAlarms: [],
+    ruleAlarms: [],
     settings: {
       ...data.settings,
       lastExportedAt: new Date().toISOString(),

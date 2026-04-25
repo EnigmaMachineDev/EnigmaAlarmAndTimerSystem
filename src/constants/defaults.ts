@@ -1,6 +1,6 @@
 import { AppData, Settings, Schedule } from '../types';
 
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 export const DEFAULT_SETTINGS: Settings = {
   defaultSnoozeDurationMinutes: 10,
@@ -26,7 +26,7 @@ export const DEFAULT_APP_DATA: AppData = {
   overrides: [],
   dayCustomizations: [],
   rules: [],
-  ephemeralAlarms: [],
+  ruleAlarms: [],
 };
 
 export const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;

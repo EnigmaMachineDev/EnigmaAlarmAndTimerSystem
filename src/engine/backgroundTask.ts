@@ -3,18 +3,16 @@ import * as BackgroundFetch from 'expo-background-fetch';
 import { BACKGROUND_TASK_DAY_START } from '../constants/defaults';
 import { loadAppData, saveAppDataImmediate } from '../storage/fileStorage';
 import { runRulesEngine } from './rulesEngine';
-import { scheduleAlarmsForDay, sendImmediateNotification } from './scheduler';
+import { scheduleAlarmsForWeek } from './scheduler';
 import { todayDateString } from '../utils/dateUtils';
-import { getDayKey } from '../utils/dateUtils';
-import { DayKey } from '../types';
 
 // ─── Shared rule-run helper ────────────────────────────────────────────────────
 
 async function runAndPersist(trigger: Parameters<typeof runRulesEngine>[0], data: Awaited<ReturnType<typeof loadAppData>>) {
   const today = todayDateString();
-  const { ephemeralAlarms: newEphemeral, switchPresetActions } = await runRulesEngine(trigger, data);
+  const { switchPresetActions } = await runRulesEngine(trigger, data);
 
-  // Handle SWITCH_PRESET
+  // Handle SWITCH_PRESET — creates an override for today so next reschedule picks it up
   if (switchPresetActions.length > 0 && switchPresetActions[0].presetId) {
     const sp = switchPresetActions[0];
     const idx = data.overrides.findIndex((o) => o.date === today);
@@ -24,11 +22,6 @@ async function runAndPersist(trigger: Parameters<typeof runRulesEngine>[0], data
       data.overrides.push({ id: Math.random().toString(36).slice(2), date: today, presetId: sp.presetId, reason: 'Auto-switched by rule' });
     }
   }
-
-  data.ephemeralAlarms = [
-    ...data.ephemeralAlarms.filter((e) => !e.fired && e.date >= today),
-    ...newEphemeral,
-  ];
 }
 
 // ─── Main background task (runs ~every minute) ────────────────────────────────
@@ -46,20 +39,8 @@ TaskManager.defineTask(BACKGROUND_TASK_DAY_START, async () => {
       // Prune old overrides
       data.overrides = data.overrides.filter((o) => o.date >= today);
 
-      // Determine active preset and schedule its alarms
-      const override = data.overrides.find((o) => o.date === today);
-      const dayKey = getDayKey(today) as DayKey;
-      const presetId = override ? override.presetId : data.schedule[dayKey];
-      const preset = data.presets.find((p) => p.id === presetId);
-
-      if (preset) {
-        const alarmCount = preset.alarms.filter((a) => a.enabled).length;
-        await sendImmediateNotification(
-          `${preset.name} is active`,
-          `${alarmCount} alarm${alarmCount !== 1 ? 's' : ''} scheduled for today`
-        );
-        await scheduleAlarmsForDay(preset.alarms, today);
-      }
+      // Reschedule the full week now that the day has rolled over
+      await scheduleAlarmsForWeek(data);
 
       await runAndPersist('START_OF_DAY', data);
     }

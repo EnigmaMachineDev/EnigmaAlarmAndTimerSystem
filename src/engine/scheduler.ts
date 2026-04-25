@@ -1,9 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import RNAlarmModule from 'react-native-alarmageddon';
 import { Platform } from 'react-native';
-import { Alarm, AppData, DayKey } from '../types';
+import { Alarm, AppData, DayKey, DayCustomization, RuleAlarm } from '../types';
+import { evaluateRulesForWeek } from './rulesEngine';
 import { NOTIFICATION_CHANNEL_DEFAULT } from '../constants/defaults';
-import { todayDateString, getDayKey } from '../utils/dateUtils';
+import { getDayKey } from '../utils/dateUtils';
 
 // ─── General notification channel (rules, info) ───────────────────────────────
 
@@ -77,42 +78,72 @@ export async function scheduleAlarm(alarm: Alarm, date: string): Promise<boolean
   }
 }
 
-// ─── Schedule all alarms for today from the resolved day ─────────────────────
-// Call this on app launch and whenever the active preset or overrides change.
+// ─── Schedule all alarms for the next 7 days ─────────────────────────────────
+// Call this on app launch and whenever presets, schedule, or overrides change.
+// Each day resolves independently (override → schedule → null), so Mon/Work,
+// Sat/Weekend etc. all get their correct alarms scheduled up front.
+// AlarmManager persists across app close and device reboot for the full week.
 
-export async function scheduleAlarmsForToday(data: AppData): Promise<void> {
-  const today = todayDateString();
-  const override = data.overrides.find((o) => o.date === today);
-  const dayKey = getDayKey(today) as DayKey;
-  const presetId = override ? override.presetId : data.schedule[dayKey];
-  const preset = data.presets.find((p) => p.id === presetId);
+export async function scheduleAlarmsForWeek(data: AppData): Promise<void> {
+  // Regenerate rule alarms fresh for the week before scheduling
+  const ruleAlarms: RuleAlarm[] = evaluateRulesForWeek(data);
+  let totalScheduled = 0;
 
-  // Cancel ALL previously scheduled alarms for every preset for today
-  // so removed or disabled alarms don't continue to fire
-  for (const p of data.presets) {
-    await cancelAllAlarmsForDay(p.alarms, today);
+  for (let offset = 0; offset < 7; offset++) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    // Cancel all previously scheduled alarms for this date across every preset
+    for (const p of data.presets) {
+      await cancelAllAlarmsForDay(p.alarms, dateStr);
+    }
+    // Cancel customization-added alarms (not part of any preset)
+    const dateCustomization = data.dayCustomizations.find((c) => c.date === dateStr);
+    if (dateCustomization) {
+      await cancelAllAlarmsForDay(dateCustomization.addAlarms, dateStr);
+    }
+    // Cancel previously scheduled rule alarms for this date
+    const dateRuleAlarms = data.ruleAlarms.filter((ra) => ra.date === dateStr);
+    await cancelAllAlarmsForDay(dateRuleAlarms.map((ra) => ra.alarm), dateStr);
+
+    // Resolve which preset applies for this date
+    const override = data.overrides.find((o) => o.date === dateStr);
+    const dayKey = getDayKey(dateStr) as DayKey;
+    const presetId = override ? override.presetId : data.schedule[dayKey];
+    const preset = data.presets.find((p) => p.id === presetId);
+
+    if (!preset) continue;
+
+    // Apply customization layer (only when no override — same rule as getResolvedDay)
+    const customization: DayCustomization | undefined = override
+      ? undefined
+      : data.dayCustomizations.find((c) => c.date === dateStr);
+
+    let resolvedAlarms: Alarm[] = preset.alarms;
+    if (customization) {
+      resolvedAlarms = resolvedAlarms.filter((a) => !customization.removeAlarmIds.includes(a.id));
+      resolvedAlarms = resolvedAlarms.map((a) => {
+        const mod = customization.modifyAlarms.find((m) => m.id === a.id);
+        return mod ? { ...a, ...mod } : a;
+      });
+      resolvedAlarms = [...resolvedAlarms, ...customization.addAlarms];
+    }
+
+    // Rule alarms for this date (freshly evaluated above)
+    const dateNewRuleAlarms = ruleAlarms
+      .filter((ra) => ra.date === dateStr)
+      .map((ra) => ra.alarm);
+
+    const allAlarms = [...resolvedAlarms, ...dateNewRuleAlarms];
+    for (const alarm of allAlarms) {
+      if (!alarm.enabled) continue;
+      const ok = await scheduleAlarm(alarm, dateStr);
+      if (ok) totalScheduled++;
+    }
   }
-  const todayEphemeral = data.ephemeralAlarms.filter((e) => e.date === today);
-  await cancelAllAlarmsForDay(todayEphemeral.map((e) => e.alarm), today);
 
-  if (!preset) {
-    console.log('[Scheduler] No preset for today — all alarms cancelled');
-    return;
-  }
-
-  // Also include any ephemeral alarms for today
-  const ephemeralAlarms = data.ephemeralAlarms
-    .filter((e) => e.date === today && !e.fired)
-    .map((e) => e.alarm);
-
-  const allAlarms = [...preset.alarms, ...ephemeralAlarms];
-  let scheduled = 0;
-  for (const alarm of allAlarms) {
-    if (!alarm.enabled) continue;
-    const ok = await scheduleAlarm(alarm, today);
-    if (ok) scheduled++;
-  }
-  console.log(`[Scheduler] scheduleAlarmsForToday: ${scheduled} alarm(s) scheduled for preset "${preset.name}"`);
+  console.log(`[Scheduler] scheduleAlarmsForWeek: ${totalScheduled} alarm(s) scheduled across next 7 days`);
 }
 
 export async function cancelAlarm(alarmId: string, date: string): Promise<void> {

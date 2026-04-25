@@ -19,6 +19,11 @@ const migrations: Record<number, MigrationFn> = {
     const overrides = (data.overrides ?? []).filter((o: any) => o.date >= todayStr);
     return { ...data, settings: restSettings, rules, overrides };
   },
+  3: (data: any) => {
+    // Replace ephemeralAlarms with ruleAlarms — rule alarms are regenerated fresh each week
+    const { ephemeralAlarms: _dropped, ...rest } = data;
+    return { ...rest, ruleAlarms: [] };
+  },
 };
 
 export function migrate(data: any): AppData {
