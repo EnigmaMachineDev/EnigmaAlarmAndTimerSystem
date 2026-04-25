@@ -28,11 +28,13 @@ export default function TodayScreen() {
   const activeTimers = useAppStore((s) => s.activeTimers);
   const activeStopwatches = useAppStore((s) => s.activeStopwatches);
   const startTimer = useAppStore((s) => s.startTimer);
-  const stopTimer = useAppStore((s) => s.stopTimer);
   const pauseTimer = useAppStore((s) => s.pauseTimer);
   const resumeTimer = useAppStore((s) => s.resumeTimer);
+  const resetTimer = useAppStore((s) => s.resetTimer);
   const startStopwatch = useAppStore((s) => s.startStopwatch);
-  const stopStopwatch = useAppStore((s) => s.stopStopwatch);
+  const pauseStopwatch = useAppStore((s) => s.pauseStopwatch);
+  const resumeStopwatch = useAppStore((s) => s.resumeStopwatch);
+  const resetStopwatch = useAppStore((s) => s.resetStopwatch);
   const lapStopwatch = useAppStore((s) => s.lapStopwatch);
 
   const today = todayDateString();
@@ -71,7 +73,8 @@ export default function TodayScreen() {
   function getStopwatchElapsed(sw: ResolvedDayStopwatch): number {
     const active = activeStopwatches[sw.id];
     if (!active) return 0;
-    return now - active.startTimestamp;
+    if (!active.running) return active.pausedElapsedMs ?? 0;
+    return (active.pausedElapsedMs ?? 0) + (now - active.startTimestamp);
   }
 
   function sourceBadge(layer: 'preset' | 'customization' | 'rule' | 'ephemeral') {
@@ -204,8 +207,8 @@ export default function TodayScreen() {
                       </TouchableOpacity>
                     )}
                     {active && (
-                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => stopTimer(timer.id)}>
-                        <Ionicons name="stop" size={12} color={Colors.text} />
+                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => resetTimer(timer.id)}>
+                        <Ionicons name="refresh" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -246,10 +249,20 @@ export default function TodayScreen() {
                         <TouchableOpacity style={[styles.actionBtn, styles.actionBtnInfo]} onPress={() => lapStopwatch(sw.id)}>
                           <Ionicons name="flag-outline" size={12} color={Colors.text} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => stopStopwatch(sw.id)}>
-                          <Ionicons name="stop" size={12} color={Colors.text} />
+                        <TouchableOpacity style={[styles.actionBtn, styles.actionBtnWarning]} onPress={() => pauseStopwatch(sw.id)}>
+                          <Ionicons name="pause" size={12} color={Colors.text} />
                         </TouchableOpacity>
                       </>
+                    )}
+                    {active && !isRunning && (
+                      <TouchableOpacity style={styles.actionBtn} onPress={() => resumeStopwatch(sw.id)}>
+                        <Ionicons name="play" size={12} color={Colors.text} />
+                      </TouchableOpacity>
+                    )}
+                    {active && (
+                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => resetStopwatch(sw.id)}>
+                        <Ionicons name="refresh" size={12} color={Colors.text} />
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>

@@ -201,7 +201,8 @@ export interface LapEntry {
 
 export interface ActiveStopwatch {
   stopwatchId: string;
-  startTimestamp: number; // epoch ms when started
+  startTimestamp: number; // epoch ms when started (adjusted on resume)
+  pausedElapsedMs?: number; // set when paused, total elapsed before pause
   running: boolean;
   laps: LapEntry[];
 }

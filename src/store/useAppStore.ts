@@ -70,9 +70,11 @@ interface AppStore extends AppData {
   startTimer: (timerId: string) => void;
   pauseTimer: (timerId: string) => void;
   resumeTimer: (timerId: string) => void;
-  stopTimer: (timerId: string) => void;
+  resetTimer: (timerId: string) => void;
   startStopwatch: (stopwatchId: string) => void;
-  stopStopwatch: (stopwatchId: string) => void;
+  pauseStopwatch: (stopwatchId: string) => void;
+  resumeStopwatch: (stopwatchId: string) => void;
+  resetStopwatch: (stopwatchId: string) => void;
   lapStopwatch: (stopwatchId: string) => void;
 }
 
@@ -390,7 +392,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       };
     }),
 
-  stopTimer: (timerId) =>
+  resetTimer: (timerId) =>
     set((s) => {
       const next = { ...s.activeTimers };
       delete next[timerId];
@@ -405,7 +407,32 @@ export const useAppStore = create<AppStore>((set, get) => ({
       },
     })),
 
-  stopStopwatch: (stopwatchId) =>
+  pauseStopwatch: (stopwatchId) =>
+    set((s) => {
+      const active = s.activeStopwatches[stopwatchId];
+      if (!active || !active.running) return s;
+      const totalElapsed = (active.pausedElapsedMs ?? 0) + (Date.now() - active.startTimestamp);
+      return {
+        activeStopwatches: {
+          ...s.activeStopwatches,
+          [stopwatchId]: { ...active, running: false, pausedElapsedMs: totalElapsed },
+        },
+      };
+    }),
+
+  resumeStopwatch: (stopwatchId) =>
+    set((s) => {
+      const active = s.activeStopwatches[stopwatchId];
+      if (!active || active.running) return s;
+      return {
+        activeStopwatches: {
+          ...s.activeStopwatches,
+          [stopwatchId]: { ...active, running: true, startTimestamp: Date.now(), pausedElapsedMs: active.pausedElapsedMs },
+        },
+      };
+    }),
+
+  resetStopwatch: (stopwatchId) =>
     set((s) => {
       const next = { ...s.activeStopwatches };
       delete next[stopwatchId];
@@ -415,9 +442,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
   lapStopwatch: (stopwatchId) =>
     set((s) => {
       const active = s.activeStopwatches[stopwatchId];
-      if (!active) return s;
-      const elapsedMs = Date.now() - active.startTimestamp;
-      const lap: LapEntry = { index: active.laps.length + 1, elapsedMs };
+      if (!active || !active.running) return s;
+      const totalElapsed = (active.pausedElapsedMs ?? 0) + (Date.now() - active.startTimestamp);
+      const lap: LapEntry = { index: active.laps.length + 1, elapsedMs: totalElapsed };
       return {
         activeStopwatches: {
           ...s.activeStopwatches,
