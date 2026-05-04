@@ -1,10 +1,21 @@
 import * as Notifications from 'expo-notifications';
 import RNAlarmModule from 'react-native-alarmageddon';
 import { Platform } from 'react-native';
+<<<<<<< Updated upstream
 import { Alarm, AppData, DayKey, DayCustomization, RuleAlarm } from '../types';
 import { evaluateRulesForWeek } from './rulesEngine';
+=======
+import { Alarm, AppData, DayKey, Timer } from '../types';
+>>>>>>> Stashed changes
 import { NOTIFICATION_CHANNEL_DEFAULT } from '../constants/defaults';
 import { getDayKey } from '../utils/dateUtils';
+
+// Prefix used for timer-backed alarms so we can distinguish them from regular
+// alarms in native persisted state (`listAlarms`).
+const TIMER_ID_PREFIX = 'timer_';
+function timerScheduleId(timerId: string): string {
+  return `${TIMER_ID_PREFIX}${timerId}`;
+}
 
 // ─── General notification channel (rules, info) ───────────────────────────────
 
@@ -89,10 +100,37 @@ export async function scheduleAlarmsForWeek(data: AppData): Promise<void> {
   const ruleAlarms: RuleAlarm[] = evaluateRulesForWeek(data);
   let totalScheduled = 0;
 
+<<<<<<< Updated upstream
   for (let offset = 0; offset < 7; offset++) {
     const d = new Date();
     d.setDate(d.getDate() + offset);
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+=======
+  // Defensively cancel EVERY alarm the native side has persisted whose schedule
+  // id is for today. This catches orphaned alarms (e.g. snoozed alarms from a
+  // preset that is no longer active after a mid-day override) that would not be
+  // covered by iterating the current in-memory preset/ephemeral lists.
+  try {
+    const existing: Array<{ id: string }> = (await RNAlarmModule.listAlarms()) as any;
+    const todaySuffix = `_${today.replace(/-/g, '')}`;
+    for (const entry of existing) {
+      if (!entry?.id || entry.id.startsWith(TIMER_ID_PREFIX)) continue; // leave timer alarms alone
+      if (entry.id.endsWith(todaySuffix)) {
+        await RNAlarmModule.cancelAlarm(entry.id);
+      }
+    }
+  } catch (err) {
+    console.warn('[Scheduler] listAlarms cleanup failed:', err);
+  }
+
+  // Also cancel explicitly by id for every known preset/ephemeral alarm for
+  // today — belt-and-suspenders in case listAlarms misses anything.
+  for (const p of data.presets) {
+    await cancelAllAlarmsForDay(p.alarms, today);
+  }
+  const todayEphemeral = data.ephemeralAlarms.filter((e) => e.date === today);
+  await cancelAllAlarmsForDay(todayEphemeral.map((e) => e.alarm), today);
+>>>>>>> Stashed changes
 
     // Cancel all previously scheduled alarms for this date across every preset
     for (const p of data.presets) {
@@ -144,6 +182,38 @@ export async function scheduleAlarmsForWeek(data: AppData): Promise<void> {
   }
 
   console.log(`[Scheduler] scheduleAlarmsForWeek: ${totalScheduled} alarm(s) scheduled across next 7 days`);
+}
+
+// ─── Timer scheduling (fires when app is closed) ──────────────────────────────
+
+export async function scheduleTimer(timer: Timer, fireAtMs: number): Promise<boolean> {
+  try {
+    if (fireAtMs <= Date.now()) return false;
+    const d = new Date(fireAtMs);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const datetimeISO = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    await RNAlarmModule.scheduleAlarm({
+      id: timerScheduleId(timer.id),
+      datetimeISO,
+      title: timer.label || 'Timer',
+      body: `${timer.label || 'Timer'} finished`,
+      snoozeEnabled: false,
+      snoozeInterval: 0,
+    });
+    console.log(`[Scheduler] Scheduled timer "${timer.label}" at ${datetimeISO}`);
+    return true;
+  } catch (err) {
+    console.error('[Scheduler] Failed to schedule timer:', err);
+    return false;
+  }
+}
+
+export async function cancelTimer(timerId: string): Promise<void> {
+  try {
+    await RNAlarmModule.cancelAlarm(timerScheduleId(timerId));
+  } catch (err) {
+    console.error('[Scheduler] Failed to cancel timer:', err);
+  }
 }
 
 export async function cancelAlarm(alarmId: string, date: string): Promise<void> {

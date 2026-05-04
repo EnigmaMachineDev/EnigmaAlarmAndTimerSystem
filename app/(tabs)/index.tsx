@@ -27,10 +27,15 @@ export default function TodayScreen() {
   const updatePreset = useAppStore((s) => s.updatePreset);
   const activeTimers = useAppStore((s) => s.activeTimers);
   const activeStopwatches = useAppStore((s) => s.activeStopwatches);
+  const completedTimers = useAppStore((s) => s.completedTimers);
   const startTimer = useAppStore((s) => s.startTimer);
   const pauseTimer = useAppStore((s) => s.pauseTimer);
   const resumeTimer = useAppStore((s) => s.resumeTimer);
+<<<<<<< Updated upstream
   const resetTimer = useAppStore((s) => s.resetTimer);
+=======
+  const markTimerDone = useAppStore((s) => s.markTimerDone);
+>>>>>>> Stashed changes
   const startStopwatch = useAppStore((s) => s.startStopwatch);
   const pauseStopwatch = useAppStore((s) => s.pauseStopwatch);
   const resumeStopwatch = useAppStore((s) => s.resumeStopwatch);
@@ -177,7 +182,8 @@ export default function TodayScreen() {
               const active = activeTimers[timer.id];
               const remaining = getTimerRemaining(timer);
               const isRunning = active?.running ?? false;
-              const isDone = active && remaining === 0;
+              const isManualDone = !!completedTimers[timer.id];
+              const isDone = isManualDone || (active && remaining === 0);
               return (
                 <View key={timer.id} style={styles.timerRow}>
                   <View style={styles.timerLeft}>
@@ -191,23 +197,43 @@ export default function TodayScreen() {
                     </View>
                   </View>
                   <View style={styles.timerActions}>
-                    {!active && (
-                      <TouchableOpacity style={styles.actionBtn} onPress={() => startTimer(timer.id)}>
-                        <Ionicons name="play" size={12} color={Colors.text} />
-                      </TouchableOpacity>
+                    {!active && !isManualDone && (
+                      <>
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => startTimer(timer.id)}>
+                          <Ionicons name="play" size={12} color={Colors.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSuccess]} onPress={() => markTimerDone(timer.id)}>
+                          <Ionicons name="checkmark" size={12} color={Colors.text} />
+                        </TouchableOpacity>
+                      </>
                     )}
                     {active && isRunning && (
-                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnWarning]} onPress={() => pauseTimer(timer.id)}>
-                        <Ionicons name="pause" size={12} color={Colors.text} />
-                      </TouchableOpacity>
+                      <>
+                        <TouchableOpacity style={[styles.actionBtn, styles.actionBtnWarning]} onPress={() => pauseTimer(timer.id)}>
+                          <Ionicons name="pause" size={12} color={Colors.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSuccess]} onPress={() => markTimerDone(timer.id)}>
+                          <Ionicons name="checkmark" size={12} color={Colors.text} />
+                        </TouchableOpacity>
+                      </>
                     )}
                     {active && !isRunning && !isDone && (
-                      <TouchableOpacity style={styles.actionBtn} onPress={() => resumeTimer(timer.id)}>
-                        <Ionicons name="play" size={12} color={Colors.text} />
-                      </TouchableOpacity>
+                      <>
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => resumeTimer(timer.id)}>
+                          <Ionicons name="play" size={12} color={Colors.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSuccess]} onPress={() => markTimerDone(timer.id)}>
+                          <Ionicons name="checkmark" size={12} color={Colors.text} />
+                        </TouchableOpacity>
+                      </>
                     )}
                     {active && (
                       <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => resetTimer(timer.id)}>
+                        <Ionicons name="refresh" size={12} color={Colors.text} />
+                      </TouchableOpacity>
+                    )}
+                    {isManualDone && !active && (
+                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={() => stopTimer(timer.id)}>
                         <Ionicons name="refresh" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
@@ -385,6 +411,8 @@ const styles = StyleSheet.create({
   actionBtnWarning: { backgroundColor: Colors.warning },
   actionBtnDanger: { backgroundColor: Colors.error },
   actionBtnInfo: { backgroundColor: Colors.info },
+  actionBtnSuccess: { backgroundColor: Colors.success },
+  actionBtnSecondary: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   actionBtnText: { color: Colors.text, fontSize: 12, fontWeight: '600' },
   emptySection: { marginTop: 32, alignItems: 'center' },
   emptyText: { color: Colors.textMuted, fontSize: 14, textAlign: 'center' },

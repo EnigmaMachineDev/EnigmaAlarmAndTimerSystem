@@ -23,7 +23,11 @@ import {
 import { DEFAULT_APP_DATA } from '../constants/defaults';
 import { saveAppData } from '../storage/fileStorage';
 import { todayDateString, getDayKey } from '../utils/dateUtils';
+<<<<<<< Updated upstream
 import { scheduleAlarmsForWeek, cancelAllAlarmsForDay } from '../engine/scheduler';
+=======
+import { scheduleAlarmsForToday, scheduleTimer, cancelTimer } from '../engine/scheduler';
+>>>>>>> Stashed changes
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -67,10 +71,16 @@ interface AppStore extends AppData {
   // Runtime timer/stopwatch state (not persisted)
   activeTimers: Record<string, ActiveTimer>;
   activeStopwatches: Record<string, ActiveStopwatch>;
+  completedTimers: Record<string, boolean>;
   startTimer: (timerId: string) => void;
   pauseTimer: (timerId: string) => void;
   resumeTimer: (timerId: string) => void;
+<<<<<<< Updated upstream
   resetTimer: (timerId: string) => void;
+=======
+  stopTimer: (timerId: string) => void;
+  markTimerDone: (timerId: string) => void;
+>>>>>>> Stashed changes
   startStopwatch: (stopwatchId: string) => void;
   pauseStopwatch: (stopwatchId: string) => void;
   resumeStopwatch: (stopwatchId: string) => void;
@@ -100,6 +110,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   activeTimers: {},
   activeStopwatches: {},
+  completedTimers: {},
 
   // ── Hydration ──────────────────────────────────────────────────────────────
   hydrate: (data) => set({ ...data }),
@@ -348,15 +359,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   // ── Runtime Timer State ────────────────────────────────────────────────────
-  startTimer: (timerId) =>
-    set((s) => ({
-      activeTimers: {
-        ...s.activeTimers,
-        [timerId]: { timerId, startTimestamp: Date.now(), running: true },
-      },
-    })),
+  startTimer: (timerId) => {
+    const resolved = get().getResolvedDay(todayDateString());
+    const timer = resolved.timers.find((t) => t.id === timerId);
+    if (timer) scheduleTimer(timer, Date.now() + timer.durationSeconds * 1000);
+    set((s) => {
+      const { [timerId]: _removed, ...restCompleted } = s.completedTimers;
+      return {
+        completedTimers: restCompleted,
+        activeTimers: {
+          ...s.activeTimers,
+          [timerId]: { timerId, startTimestamp: Date.now(), running: true },
+        },
+      };
+    });
+  },
 
-  pauseTimer: (timerId) =>
+  pauseTimer: (timerId) => {
+    cancelTimer(timerId);
     set((s) => {
       const active = s.activeTimers[timerId];
       if (!active || !active.running) return s;
@@ -371,33 +391,59 @@ export const useAppStore = create<AppStore>((set, get) => ({
           [timerId]: { ...active, running: false, pausedRemainingMs: Math.max(0, remaining) },
         },
       };
-    }),
+    });
+  },
 
-  resumeTimer: (timerId) =>
+  resumeTimer: (timerId) => {
+    const active = get().activeTimers[timerId];
+    const resolved = get().getResolvedDay(todayDateString());
+    const timer = resolved.timers.find((t) => t.id === timerId);
+    const remainingMs = active?.pausedRemainingMs ?? (timer ? timer.durationSeconds * 1000 : 0);
+    if (timer) scheduleTimer(timer, Date.now() + remainingMs);
     set((s) => {
-      const active = s.activeTimers[timerId];
-      if (!active || active.running) return s;
-      const remaining = active.pausedRemainingMs ?? 0;
+      const a = s.activeTimers[timerId];
+      if (!a || a.running) return s;
+      const r = a.pausedRemainingMs ?? 0;
       return {
         activeTimers: {
           ...s.activeTimers,
           [timerId]: {
             timerId,
-            startTimestamp: Date.now() - (active.pausedRemainingMs != null
-              ? (get().getResolvedDay(todayDateString()).timers.find(t => t.id === timerId)?.durationSeconds ?? 0) * 1000 - remaining
+            startTimestamp: Date.now() - (a.pausedRemainingMs != null
+              ? (timer?.durationSeconds ?? 0) * 1000 - r
               : 0),
             running: true,
           },
         },
       };
-    }),
+    });
+  },
 
+<<<<<<< Updated upstream
   resetTimer: (timerId) =>
+=======
+  stopTimer: (timerId) => {
+    cancelTimer(timerId);
+>>>>>>> Stashed changes
     set((s) => {
       const next = { ...s.activeTimers };
       delete next[timerId];
-      return { activeTimers: next };
-    }),
+      const { [timerId]: _removed, ...restCompleted } = s.completedTimers;
+      return { activeTimers: next, completedTimers: restCompleted };
+    });
+  },
+
+  markTimerDone: (timerId) => {
+    cancelTimer(timerId);
+    set((s) => {
+      const next = { ...s.activeTimers };
+      delete next[timerId];
+      return {
+        activeTimers: next,
+        completedTimers: { ...s.completedTimers, [timerId]: true },
+      };
+    });
+  },
 
   startStopwatch: (stopwatchId) =>
     set((s) => ({
