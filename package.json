@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "build:android": "eas build --platform android --profile development",
     "build:preview": "eas build --platform android --profile preview",
+    "build:local": "eas build --platform android --profile preview --local",
     "postinstall": "patch-package"
   },
   "dependencies": {
