@@ -1,12 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import RNAlarmModule from 'react-native-alarmageddon';
 import { Platform } from 'react-native';
-<<<<<<< Updated upstream
-import { Alarm, AppData, DayKey, DayCustomization, RuleAlarm } from '../types';
+import { Alarm, AppData, DayKey, DayCustomization, RuleAlarm, Timer } from '../types';
 import { evaluateRulesForWeek } from './rulesEngine';
-=======
-import { Alarm, AppData, DayKey, Timer } from '../types';
->>>>>>> Stashed changes
 import { NOTIFICATION_CHANNEL_DEFAULT } from '../constants/defaults';
 import { getDayKey } from '../utils/dateUtils';
 
@@ -100,22 +96,23 @@ export async function scheduleAlarmsForWeek(data: AppData): Promise<void> {
   const ruleAlarms: RuleAlarm[] = evaluateRulesForWeek(data);
   let totalScheduled = 0;
 
-<<<<<<< Updated upstream
-  for (let offset = 0; offset < 7; offset++) {
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-=======
   // Defensively cancel EVERY alarm the native side has persisted whose schedule
-  // id is for today. This catches orphaned alarms (e.g. snoozed alarms from a
-  // preset that is no longer active after a mid-day override) that would not be
-  // covered by iterating the current in-memory preset/ephemeral lists.
+  // id ends with any of the next-7-day suffixes. Catches orphaned alarms (e.g.
+  // snoozed alarms from a preset that is no longer active after a mid-day
+  // override) that would not be covered by iterating only the current
+  // in-memory preset/customization/rule lists. Timer alarms are skipped.
   try {
     const existing: Array<{ id: string }> = (await RNAlarmModule.listAlarms()) as any;
-    const todaySuffix = `_${today.replace(/-/g, '')}`;
+    const weekSuffixes: string[] = [];
+    for (let offset = 0; offset < 7; offset++) {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      weekSuffixes.push(`_${ds.replace(/-/g, '')}`);
+    }
     for (const entry of existing) {
-      if (!entry?.id || entry.id.startsWith(TIMER_ID_PREFIX)) continue; // leave timer alarms alone
-      if (entry.id.endsWith(todaySuffix)) {
+      if (!entry?.id || entry.id.startsWith(TIMER_ID_PREFIX)) continue;
+      if (weekSuffixes.some((suf) => entry.id.endsWith(suf))) {
         await RNAlarmModule.cancelAlarm(entry.id);
       }
     }
@@ -123,14 +120,10 @@ export async function scheduleAlarmsForWeek(data: AppData): Promise<void> {
     console.warn('[Scheduler] listAlarms cleanup failed:', err);
   }
 
-  // Also cancel explicitly by id for every known preset/ephemeral alarm for
-  // today — belt-and-suspenders in case listAlarms misses anything.
-  for (const p of data.presets) {
-    await cancelAllAlarmsForDay(p.alarms, today);
-  }
-  const todayEphemeral = data.ephemeralAlarms.filter((e) => e.date === today);
-  await cancelAllAlarmsForDay(todayEphemeral.map((e) => e.alarm), today);
->>>>>>> Stashed changes
+  for (let offset = 0; offset < 7; offset++) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     // Cancel all previously scheduled alarms for this date across every preset
     for (const p of data.presets) {

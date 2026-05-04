@@ -23,11 +23,7 @@ import {
 import { DEFAULT_APP_DATA } from '../constants/defaults';
 import { saveAppData } from '../storage/fileStorage';
 import { todayDateString, getDayKey } from '../utils/dateUtils';
-<<<<<<< Updated upstream
-import { scheduleAlarmsForWeek, cancelAllAlarmsForDay } from '../engine/scheduler';
-=======
-import { scheduleAlarmsForToday, scheduleTimer, cancelTimer } from '../engine/scheduler';
->>>>>>> Stashed changes
+import { scheduleAlarmsForWeek, cancelAllAlarmsForDay, scheduleTimer, cancelTimer } from '../engine/scheduler';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -75,12 +71,8 @@ interface AppStore extends AppData {
   startTimer: (timerId: string) => void;
   pauseTimer: (timerId: string) => void;
   resumeTimer: (timerId: string) => void;
-<<<<<<< Updated upstream
   resetTimer: (timerId: string) => void;
-=======
-  stopTimer: (timerId: string) => void;
   markTimerDone: (timerId: string) => void;
->>>>>>> Stashed changes
   startStopwatch: (stopwatchId: string) => void;
   pauseStopwatch: (stopwatchId: string) => void;
   resumeStopwatch: (stopwatchId: string) => void;
@@ -419,12 +411,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     });
   },
 
-<<<<<<< Updated upstream
-  resetTimer: (timerId) =>
-=======
-  stopTimer: (timerId) => {
+  resetTimer: (timerId) => {
     cancelTimer(timerId);
->>>>>>> Stashed changes
     set((s) => {
       const next = { ...s.activeTimers };
       delete next[timerId];

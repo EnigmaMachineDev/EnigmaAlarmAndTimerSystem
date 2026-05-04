@@ -31,11 +31,8 @@ export default function TodayScreen() {
   const startTimer = useAppStore((s) => s.startTimer);
   const pauseTimer = useAppStore((s) => s.pauseTimer);
   const resumeTimer = useAppStore((s) => s.resumeTimer);
-<<<<<<< Updated upstream
   const resetTimer = useAppStore((s) => s.resetTimer);
-=======
   const markTimerDone = useAppStore((s) => s.markTimerDone);
->>>>>>> Stashed changes
   const startStopwatch = useAppStore((s) => s.startStopwatch);
   const pauseStopwatch = useAppStore((s) => s.pauseStopwatch);
   const resumeStopwatch = useAppStore((s) => s.resumeStopwatch);
@@ -233,7 +230,7 @@ export default function TodayScreen() {
                       </TouchableOpacity>
                     )}
                     {isManualDone && !active && (
-                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={() => stopTimer(timer.id)}>
+                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={() => resetTimer(timer.id)}>
                         <Ionicons name="refresh" size={12} color={Colors.text} />
                       </TouchableOpacity>
                     )}
