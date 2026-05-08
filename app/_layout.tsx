@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
@@ -9,6 +9,14 @@ import { useAppStore } from '../src/store/useAppStore';
 import { loadAppData } from '../src/storage/fileStorage';
 import { setupNotificationChannels, requestNotificationPermissions, scheduleAlarmsForWeek } from '../src/engine/scheduler';
 import { registerBackgroundTasks } from '../src/engine/backgroundTask';
+
+// alarmageddon emits the *schedule* id, which is the underlying alarm id with
+// a date suffix like `_20251108` appended by the scheduler. Strip it to get
+// back to the alarm id we can look up in the store.
+function parseAlarmIdFromScheduleId(scheduleId: string): string {
+  const m = scheduleId.match(/^(.*)_\d{8}$/);
+  return m ? m[1] : scheduleId;
+}
 
 // Must import background task definitions so TaskManager registers them
 import '../src/engine/backgroundTask';
@@ -38,10 +46,23 @@ export default function RootLayout() {
     requestNotificationPermissions();
     registerBackgroundTasks();
 
-    // Listen for alarm fire events (e.g. to navigate to a dismiss screen in future)
-    const sub = RNAlarmModule.onAlarmStateChange((alarmId) => {
-      if (alarmId) {
-        console.log('[Alarm] Firing:', alarmId);
+    // Listen for alarm fire events. Heavy Sleeper alarms route into a
+    // dedicated full-screen "ringing" modal that requires a code to dismiss.
+    const sub = RNAlarmModule.onAlarmStateChange((scheduleId) => {
+      if (scheduleId) {
+        console.log('[Alarm] Firing:', scheduleId);
+        const underlyingId = parseAlarmIdFromScheduleId(scheduleId);
+        const alarm = useAppStore.getState().findAlarmById(underlyingId);
+        if (alarm?.heavySleeperEnabled) {
+          router.push({
+            pathname: '/ringing',
+            params: {
+              scheduleId,
+              alarmId: underlyingId,
+              label: alarm.label ?? '',
+            },
+          });
+        }
       } else {
         console.log('[Alarm] Stopped/dismissed');
       }
@@ -61,6 +82,15 @@ export default function RootLayout() {
         <Stack.Screen name="rule/new" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="override" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="customize" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen
+          name="ringing"
+          options={{
+            presentation: 'fullScreenModal',
+            headerShown: false,
+            gestureEnabled: false,
+            animation: 'fade',
+          }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

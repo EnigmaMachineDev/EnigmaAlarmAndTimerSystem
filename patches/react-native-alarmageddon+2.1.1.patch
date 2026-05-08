@@ -1,11 +1,279 @@
+diff --git a/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmModule.kt b/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmModule.kt
+index 84502ce..f7f996a 100644
+--- a/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmModule.kt
++++ b/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmModule.kt
+@@ -67,6 +67,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+             val body = alarm.optString("body", "")
+             val snoozeEnabled = alarm.optBoolean("snoozeEnabled", true)
+             val snoozeInterval = alarm.optInt("snoozeInterval", 5)
++            val requireDismissCode = alarm.optBoolean("requireDismissCode", false)
+ 
+             val intent = Intent(reactApplicationContext, AlarmReceiver::class.java).apply {
+                 action = AlarmReceiver.ACTION_SNOOZE
+@@ -76,6 +77,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+                 putExtra("snoozeMinutes", minutes)
+                 putExtra("snoozeEnabled", snoozeEnabled)
+                 putExtra("snoozeInterval", snoozeInterval)
++                putExtra("requireDismissCode", requireDismissCode)
+             }
+             reactApplicationContext.sendBroadcast(intent)
+             promise.resolve(null)
+@@ -104,6 +106,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+             val body = alarm.getString("body") ?: ""
+             val snoozeEnabled = if (alarm.hasKey("snoozeEnabled")) alarm.getBoolean("snoozeEnabled") else true
+             val snoozeInterval = if (alarm.hasKey("snoozeInterval")) alarm.getInt("snoozeInterval") else 5
++            val requireDismissCode = if (alarm.hasKey("requireDismissCode")) alarm.getBoolean("requireDismissCode") else false
+ 
+             val sdf = SimpleDateFormat(DATE_PATTERN, Locale.getDefault())
+             val date = sdf.parse(datetimeISO) ?: throw Exception("Invalid date format")
+@@ -121,6 +124,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+                 putExtra("body", body)
+                 putExtra("snoozeEnabled", snoozeEnabled)
+                 putExtra("snoozeInterval", snoozeInterval)
++                putExtra("requireDismissCode", requireDismissCode)
+             }
+ 
+             val pendingIntent = PendingIntent.getBroadcast(
+@@ -137,7 +141,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+             }
+ 
+-            saveAlarm(id, datetimeISO, title, body, snoozeEnabled, snoozeInterval)
++            saveAlarm(id, datetimeISO, title, body, snoozeEnabled, snoozeInterval, requireDismissCode)
+             Log.d(TAG, "Scheduled alarm id=$id at=$datetimeISO")
+             promise.resolve(null)
+         } catch (e: Exception) {
+@@ -186,6 +190,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+             map.putString("body", obj.optString("body"))
+             map.putBoolean("snoozeEnabled", obj.optBoolean("snoozeEnabled", true))
+             map.putInt("snoozeInterval", obj.optInt("snoozeInterval", 5))
++            map.putBoolean("requireDismissCode", obj.optBoolean("requireDismissCode", false))
+             arr.pushMap(map)
+         }
+         promise.resolve(arr)
+@@ -232,7 +237,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+         // Required for NativeEventEmitter
+     }
+ 
+-    private fun saveAlarm(id: String, datetimeISO: String, title: String, body: String, snoozeEnabled: Boolean = true, snoozeInterval: Int = 5) {
++    private fun saveAlarm(id: String, datetimeISO: String, title: String, body: String, snoozeEnabled: Boolean = true, snoozeInterval: Int = 5, requireDismissCode: Boolean = false) {
+         val obj = JSONObject()
+             .put("id", id)
+             .put("datetimeISO", datetimeISO)
+@@ -240,6 +245,7 @@ class AlarmModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+             .put("body", body)
+             .put("snoozeEnabled", snoozeEnabled)
+             .put("snoozeInterval", snoozeInterval)
++            .put("requireDismissCode", requireDismissCode)
+         val prefs = reactApplicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+         prefs.edit().putString(id, obj.toString()).apply()
+     }
+diff --git a/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmReceiver.kt b/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmReceiver.kt
+index 8eb109e..be9acb0 100644
 --- a/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmReceiver.kt
 +++ b/node_modules/react-native-alarmageddon/android/src/main/java/com/rnalarmmodule/AlarmReceiver.kt
-@@ -315,6 +315,8 @@
+@@ -23,6 +23,11 @@ class AlarmReceiver : BroadcastReceiver() {
+         private const val RAW_RES = "alarm_default"
+         private const val SNOOZE_MINUTES = 5
+         private const val AUTO_STOP_SECONDS = 60
++        // When Heavy Sleeper Mode is on we don't auto-stop the alarm at 60s —
++        // the user must enter the dismiss code. We still cap it (after this
++        // many seconds we give up) so a stuck/forgotten alarm cannot ring
++        // forever and drain the battery.
++        private const val HEAVY_SLEEPER_MAX_SECONDS = 30 * 60
+ 
+         @Volatile
+         private var player: MediaPlayer? = null
+@@ -36,6 +41,9 @@ class AlarmReceiver : BroadcastReceiver() {
+         @Volatile
+         var activeAlarmId: String? = null
+ 
++        @Volatile
++        var dismissCodeRequired: Boolean = false
++
+         @Volatile
+         private var wakeLock: PowerManager.WakeLock? = null
+     }
+@@ -64,23 +72,27 @@ class AlarmReceiver : BroadcastReceiver() {
+         val body = intent.getStringExtra("body") ?: ""
+         val snoozeEnabled = intent.getBooleanExtra("snoozeEnabled", true)
+         val snoozeInterval = intent.getIntExtra("snoozeInterval", SNOOZE_MINUTES)
++        val requireDismissCode = intent.getBooleanExtra("requireDismissCode", false)
+         activeAlarmId = id
++        dismissCodeRequired = requireDismissCode
+ 
+         emitActiveAlarmId(activeAlarmId)
+ 
+-        acquireWakeLock(context)
++        acquireWakeLock(context, requireDismissCode)
+         setupAudio(context)
+-        playAlarm(context, id)
+-        showNotificationWithActions(context, id, title, body, snoozeEnabled, snoozeInterval)
++        playAlarm(context, id, requireDismissCode)
++        showNotificationWithActions(context, id, title, body, snoozeEnabled, snoozeInterval, requireDismissCode)
+     }
+ 
+-    private fun acquireWakeLock(context: Context) {
++    private fun acquireWakeLock(context: Context, requireDismissCode: Boolean) {
+         if (wakeLock?.isHeld == true) return
+         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "rnalarmmodule:AlarmWakeLock").apply {
+             setReferenceCounted(false)
+-            // Acquire for a bounded time (65s) – alarm auto-stops at 60s.
+-            acquire((AUTO_STOP_SECONDS + 5) * 1000L)
++            // Acquire for a bounded time. Heavy Sleeper Mode needs a much
++            // longer hold since the user has to type a 20-char code.
++            val seconds = if (requireDismissCode) HEAVY_SLEEPER_MAX_SECONDS + 5 else AUTO_STOP_SECONDS + 5
++            acquire(seconds * 1000L)
+         }
+     }
+ 
+@@ -126,7 +138,7 @@ class AlarmReceiver : BroadcastReceiver() {
+         }
+     }
+ 
+-    private fun playAlarm(context: Context, id: String) {
++    private fun playAlarm(context: Context, id: String, requireDismissCode: Boolean) {
+         player?.let {
+             try {
+                 if (it.isPlaying) it.stop()
+@@ -169,21 +181,31 @@ class AlarmReceiver : BroadcastReceiver() {
+             }
+         }
+ 
+-        // Auto-stop after configured time
++        // Auto-stop after configured time. Heavy Sleeper Mode uses a much
++        // longer cap so the user actually has to type the dismiss code.
++        val maxSeconds = if (requireDismissCode) HEAVY_SLEEPER_MAX_SECONDS else AUTO_STOP_SECONDS
+         Thread {
+             try {
+-                Thread.sleep(AUTO_STOP_SECONDS * 1000L)
++                Thread.sleep(maxSeconds * 1000L)
+             } catch (_: InterruptedException) {
+             } finally {
+                 if (activeAlarmId == id) {
+-                    Log.d(TAG, "Auto-stopping alarm id=$id after ${AUTO_STOP_SECONDS}s")
++                    Log.d(TAG, "Auto-stopping alarm id=$id after ${maxSeconds}s")
+                     stopAlarm(context, id)
+                 }
+             }
+         }.start()
+     }
+ 
+-    private fun showNotificationWithActions(context: Context, id: String, title: String, body: String, snoozeEnabled: Boolean = true, snoozeInterval: Int = SNOOZE_MINUTES) {
++    private fun showNotificationWithActions(
++        context: Context,
++        id: String,
++        title: String,
++        body: String,
++        snoozeEnabled: Boolean = true,
++        snoozeInterval: Int = SNOOZE_MINUTES,
++        requireDismissCode: Boolean = false
++    ) {
+         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+ 
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+@@ -205,7 +227,7 @@ class AlarmReceiver : BroadcastReceiver() {
+             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+         )
+ 
+-        val snoozePendingIntent = if (snoozeEnabled) {
++        val snoozePendingIntent = if (snoozeEnabled && !requireDismissCode) {
+             val snoozeIntent = Intent(context, AlarmReceiver::class.java).apply {
+                 action = ACTION_SNOOZE
+                 putExtra("id", id)
+@@ -214,6 +236,7 @@ class AlarmReceiver : BroadcastReceiver() {
+                 putExtra("snoozeMinutes", snoozeInterval)
+                 putExtra("snoozeEnabled", snoozeEnabled)
+                 putExtra("snoozeInterval", snoozeInterval)
++                putExtra("requireDismissCode", requireDismissCode)
+             }
+             PendingIntent.getBroadcast(
+                 context, id.hashCode() + 2, snoozeIntent,
+@@ -240,14 +263,18 @@ class AlarmReceiver : BroadcastReceiver() {
+             .setContentText(body)
+             .setPriority(NotificationCompat.PRIORITY_HIGH)
+             .setCategory(NotificationCompat.CATEGORY_ALARM)
+-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+             .setOngoing(true)
+             .setSound(null)
+             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+ 
+-        // Only add snooze action if snooze is enabled
+-        if (snoozeEnabled && snoozePendingIntent != null) {
+-            builder.addAction(android.R.drawable.ic_menu_recent_history, "Snooze", snoozePendingIntent)
++        // Heavy Sleeper Mode hides the Stop and Snooze action buttons so the
++        // alarm cannot be one-tap dismissed from the notification shade — the
++        // user must open the app and type the dismiss code.
++        if (!requireDismissCode) {
++            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
++            if (snoozeEnabled && snoozePendingIntent != null) {
++                builder.addAction(android.R.drawable.ic_menu_recent_history, "Snooze", snoozePendingIntent)
++            }
+         }
+ 
+         if (fullScreenPendingIntent != null) {
+@@ -300,6 +327,7 @@ class AlarmReceiver : BroadcastReceiver() {
+ 
+         if (activeAlarmId == id) {
+             activeAlarmId = null
++            dismissCodeRequired = false
+             emitActiveAlarmId(null)
+         }
+     }
+@@ -310,11 +338,15 @@ class AlarmReceiver : BroadcastReceiver() {
+         val title = originalIntent.getStringExtra("title") ?: "Alarm"
+         val body = originalIntent.getStringExtra("body") ?: ""
+         val minutes = originalIntent.getIntExtra("snoozeMinutes", SNOOZE_MINUTES)
++        val requireDismissCode = originalIntent.getBooleanExtra("requireDismissCode", false)
+ 
+         val snoozeIntent = Intent(context, AlarmReceiver::class.java).apply {
              putExtra("id", id)
              putExtra("title", title)
              putExtra("body", body)
 +            putExtra("snoozeEnabled", true)
 +            putExtra("snoozeInterval", minutes)
++            putExtra("requireDismissCode", requireDismissCode)
          }
  
          val pendingIntent = PendingIntent.getBroadcast(
+diff --git a/node_modules/react-native-alarmageddon/lib/index.d.ts b/node_modules/react-native-alarmageddon/lib/index.d.ts
+index 1e70192..8cf58f0 100644
+--- a/node_modules/react-native-alarmageddon/lib/index.d.ts
++++ b/node_modules/react-native-alarmageddon/lib/index.d.ts
+@@ -14,6 +14,15 @@ export type AlarmParams = {
+     snoozeEnabled?: boolean;
+     /** Interval in minutes for snoozing */
+     snoozeInterval?: number;
++    /**
++     * When true, the heads-up notification's Stop and Snooze action buttons are
++     * suppressed and the alarm cannot be dismissed by interacting with the
++     * notification — the host app must call `stopCurrentAlarm` /
++     * `snoozeCurrentAlarm` itself (e.g. after the user types a dismiss code on
++     * a custom screen). Also extends the auto-stop timeout substantially so
++     * the alarm keeps ringing while the user types.
++     */
++    requireDismissCode?: boolean;
+ };
+ /**
+  * Result of permission request
+diff --git a/node_modules/react-native-alarmageddon/src/index.ts b/node_modules/react-native-alarmageddon/src/index.ts
+index 185db19..98482e8 100644
+--- a/node_modules/react-native-alarmageddon/src/index.ts
++++ b/node_modules/react-native-alarmageddon/src/index.ts
+@@ -21,6 +21,15 @@ export type AlarmParams = {
+   snoozeEnabled?: boolean;
+   /** Interval in minutes for snoozing */
+   snoozeInterval?: number;
++  /**
++   * When true, the heads-up notification's Stop and Snooze action buttons are
++   * suppressed and the alarm cannot be dismissed by interacting with the
++   * notification — the host app must call `stopCurrentAlarm` / `snoozeCurrentAlarm`
++   * itself (e.g. after the user types a dismiss code on a custom screen).
++   * Also extends the auto-stop timeout substantially so the alarm keeps
++   * ringing while the user types.
++   */
++  requireDismissCode?: boolean;
+ };
+ 
+ /**

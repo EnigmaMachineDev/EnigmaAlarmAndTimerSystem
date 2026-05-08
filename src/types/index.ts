@@ -36,6 +36,12 @@ export interface Alarm {
   sound: string;
   snoozeDurationMinutes: number;
   origin: Origin;
+  /**
+   * When true, the alarm cannot be stopped or snoozed without typing a
+   * randomly-generated 20-character code that is shown on screen each time
+   * the alarm fires. Designed for heavy sleepers.
+   */
+  heavySleeperEnabled: boolean;
 }
 
 // ─── Timer ───────────────────────────────────────────────────────────────────

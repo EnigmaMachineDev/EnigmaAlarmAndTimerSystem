@@ -118,6 +118,7 @@ export function evaluateRulesForWeek(data: AppData): RuleAlarm[] {
             sound: 'default',
             snoozeDurationMinutes: data.settings.defaultSnoozeDurationMinutes,
             origin: 'rule',
+            heavySleeperEnabled: false,
           },
         });
       }

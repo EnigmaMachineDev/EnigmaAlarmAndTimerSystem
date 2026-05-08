@@ -64,6 +64,11 @@ interface AppStore extends AppData {
   // Resolved day selectors
   getResolvedDay: (date: string) => ResolvedDay;
 
+  // Lookup an alarm by id across presets, customizations, and rule alarms.
+  // Used by the "ringing" screen to determine whether Heavy Sleeper is on
+  // when the native module emits an activeAlarmId event.
+  findAlarmById: (alarmId: string) => Alarm | undefined;
+
   // Runtime timer/stopwatch state (not persisted)
   activeTimers: Record<string, ActiveTimer>;
   activeStopwatches: Record<string, ActiveStopwatch>;
@@ -348,6 +353,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
       timers,
       stopwatches,
     };
+  },
+
+  // ── Alarm lookup ──────────────────────────────────────────────────────────
+  // Searches every layer where an alarm can live: preset alarms, customization
+  // addAlarms, and rule alarms. Returns the first match or undefined.
+  findAlarmById: (alarmId) => {
+    const s = get();
+    for (const p of s.presets) {
+      const found = p.alarms.find((a) => a.id === alarmId);
+      if (found) return found;
+    }
+    for (const c of s.dayCustomizations) {
+      const found = c.addAlarms.find((a) => a.id === alarmId);
+      if (found) return found;
+    }
+    for (const ra of s.ruleAlarms) {
+      if (ra.alarm.id === alarmId) return ra.alarm;
+    }
+    return undefined;
   },
 
   // ── Runtime Timer State ────────────────────────────────────────────────────

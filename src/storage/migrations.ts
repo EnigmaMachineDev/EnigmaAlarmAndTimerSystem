@@ -24,6 +24,30 @@ const migrations: Record<number, MigrationFn> = {
     const { ephemeralAlarms: _dropped, ...rest } = data;
     return { ...rest, ruleAlarms: [] };
   },
+  4: (data: any) => {
+    // Backfill heavySleeperEnabled: false on every persisted alarm.
+    const backfillAlarm = (a: any) =>
+      a && typeof a === 'object' && a.heavySleeperEnabled === undefined
+        ? { ...a, heavySleeperEnabled: false }
+        : a;
+
+    const presets = (data.presets ?? []).map((p: any) => ({
+      ...p,
+      alarms: (p.alarms ?? []).map(backfillAlarm),
+    }));
+
+    const dayCustomizations = (data.dayCustomizations ?? []).map((c: any) => ({
+      ...c,
+      addAlarms: (c.addAlarms ?? []).map(backfillAlarm),
+    }));
+
+    const ruleAlarms = (data.ruleAlarms ?? []).map((ra: any) => ({
+      ...ra,
+      alarm: backfillAlarm(ra.alarm),
+    }));
+
+    return { ...data, presets, dayCustomizations, ruleAlarms };
+  },
 };
 
 export function migrate(data: any): AppData {

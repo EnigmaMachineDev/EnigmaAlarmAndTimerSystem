@@ -73,9 +73,13 @@ export async function scheduleAlarm(alarm: Alarm, date: string): Promise<boolean
       datetimeISO,
       title: alarm.label || 'Alarm',
       body: alarm.label ? alarm.label : `Scheduled for ${alarm.time}`,
-      snoozeEnabled: true,
+      // When Heavy Sleeper is on, snooze must also be gated through the
+      // ringing screen, so we tell the native module to suppress its
+      // notification action buttons entirely (see requireDismissCode below).
+      snoozeEnabled: !alarm.heavySleeperEnabled,
       snoozeInterval: alarm.snoozeDurationMinutes,
-    });
+      requireDismissCode: alarm.heavySleeperEnabled,
+    } as any);
 
     console.log(`[Scheduler] Scheduled alarm "${alarm.label || alarm.time}" id=${alarmScheduleId(alarm.id, date)} at ${datetimeISO}`);
     return true;

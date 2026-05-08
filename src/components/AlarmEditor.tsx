@@ -30,6 +30,7 @@ const BLANK_ALARM: Omit<Alarm, 'id'> = {
   sound: 'default',
   snoozeDurationMinutes: 10,
   origin: 'preset',
+  heavySleeperEnabled: false,
 };
 
 export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
@@ -137,6 +138,20 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
                     thumbColor={Colors.text}
                   />
                 </View>
+                <View style={styles.switchRow}>
+                  <View style={styles.switchTextCol}>
+                    <Text style={styles.switchLabel}>Heavy Sleeper Mode</Text>
+                    <Text style={styles.switchHint}>
+                      Requires typing a random 20-character code to stop or snooze when this alarm fires.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={editing.heavySleeperEnabled}
+                    onValueChange={(v) => setEditing({ ...editing, heavySleeperEnabled: v })}
+                    trackColor={{ false: Colors.alarmOff, true: Colors.alarmOn }}
+                    thumbColor={Colors.text}
+                  />
+                </View>
                 <View style={styles.modalBtns}>
                   <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(null)}>
                     <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -182,8 +197,10 @@ const styles = StyleSheet.create({
   field: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', marginBottom: 6 },
   input: { backgroundColor: Colors.surfaceAlt, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: Colors.text },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 12 },
+  switchTextCol: { flex: 1 },
   switchLabel: { fontSize: 15, color: Colors.text },
+  switchHint: { fontSize: 12, color: Colors.textMuted, marginTop: 2, lineHeight: 16 },
   modalBtns: { flexDirection: 'row', gap: 10, marginTop: 20 },
   cancelBtn: { flex: 1, backgroundColor: Colors.surfaceAlt, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   cancelBtnText: { color: Colors.textSecondary, fontWeight: '600' },
