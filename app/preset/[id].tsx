@@ -27,6 +27,7 @@ export default function EditPresetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const presets = useAppStore((s) => s.presets);
   const updatePreset = useAppStore((s) => s.updatePreset);
+  const deletePreset = useAppStore((s) => s.deletePreset);
   const getResolvedDay = useAppStore((s) => s.getResolvedDay);
   const use12h = useAppStore((s) => s.settings.timeFormat === '12h');
 
@@ -49,6 +50,21 @@ export default function EditPresetScreen() {
       router.back();
     }
   }, []);
+
+  function handleDelete() {
+    if (!id) return;
+    const message = isActiveToday
+      ? 'This preset is active today. Deleting it will remove it from the schedule. Continue?'
+      : 'Delete this preset? This cannot be undone.';
+    Alert.alert('Delete Preset', message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => { deletePreset(id); router.back(); },
+      },
+    ]);
+  }
 
   function handleSave() {
     if (!name.trim()) {
@@ -128,6 +144,10 @@ export default function EditPresetScreen() {
         <TimerEditor timers={timers} onChange={setTimers} />
         <StopwatchEditor stopwatches={stopwatches} onChange={setStopwatches} />
 
+        <TouchableOpacity style={styles.deletePresetBtn} onPress={handleDelete}>
+          <Text style={styles.deletePresetBtnText}>Delete Preset</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 40 }} />
       </ScrollView>
 
@@ -183,4 +203,6 @@ const styles = StyleSheet.create({
   iconOption: { flex: 1, alignItems: 'center', justifyContent: 'center', margin: 6, padding: 10, borderRadius: 10, backgroundColor: Colors.surfaceAlt },
   iconOptionSelected: { borderWidth: 2, borderColor: Colors.primary },
   iconOptionText: { fontSize: 22 },
+  deletePresetBtn: { marginTop: 32, backgroundColor: Colors.error + '22', borderWidth: 1, borderColor: Colors.error, borderRadius: 12, padding: 14, alignItems: 'center' },
+  deletePresetBtnText: { color: Colors.error, fontWeight: '700', fontSize: 15 },
 });

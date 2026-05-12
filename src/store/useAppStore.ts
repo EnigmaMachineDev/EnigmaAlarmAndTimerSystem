@@ -22,6 +22,7 @@ import {
 } from '../types';
 import { DEFAULT_APP_DATA } from '../constants/defaults';
 import { saveAppData } from '../storage/fileStorage';
+import { saveRuntimeState, RuntimeState } from '../storage/runtimeStorage';
 import { todayDateString, getDayKey } from '../utils/dateUtils';
 import { scheduleAlarmsForWeek, cancelAllAlarmsForDay, scheduleTimer, cancelTimer } from '../engine/scheduler';
 
@@ -30,6 +31,9 @@ import { scheduleAlarmsForWeek, cancelAllAlarmsForDay, scheduleTimer, cancelTime
 interface AppStore extends AppData {
   // Hydration
   hydrate: (data: AppData) => void;
+  // Restores in-flight timer/stopwatch state loaded from runtimeState.json so
+  // running/paused timers survive an app kill+relaunch.
+  hydrateRuntime: (state: RuntimeState) => void;
 
   // Settings
   updateSettings: (patch: Partial<Settings>) => void;
@@ -69,7 +73,9 @@ interface AppStore extends AppData {
   // when the native module emits an activeAlarmId event.
   findAlarmById: (alarmId: string) => Alarm | undefined;
 
-  // Runtime timer/stopwatch state (not persisted)
+  // Runtime timer/stopwatch state — persisted via runtimeStorage so running/
+  // paused timers survive an app kill+relaunch (elapsed values computed from
+  // epoch timestamps in each record).
   activeTimers: Record<string, ActiveTimer>;
   activeStopwatches: Record<string, ActiveStopwatch>;
   completedTimers: Record<string, boolean>;
@@ -100,6 +106,21 @@ function persist(state: AppData) {
   });
 }
 
+// Persist only the runtime view of timers/stopwatches. Called after every
+// mutator that touches activeTimers / activeStopwatches / completedTimers so
+// the user's in-flight state survives the app being killed.
+function persistRuntime(state: {
+  activeTimers: Record<string, ActiveTimer>;
+  activeStopwatches: Record<string, ActiveStopwatch>;
+  completedTimers: Record<string, boolean>;
+}) {
+  saveRuntimeState({
+    activeTimers: state.activeTimers,
+    activeStopwatches: state.activeStopwatches,
+    completedTimers: state.completedTimers,
+  });
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -111,6 +132,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // ── Hydration ──────────────────────────────────────────────────────────────
   hydrate: (data) => set({ ...data }),
+
+  hydrateRuntime: (state) =>
+    set({
+      activeTimers: state.activeTimers,
+      activeStopwatches: state.activeStopwatches,
+      completedTimers: state.completedTimers,
+    }),
 
   // ── Settings ───────────────────────────────────────────────────────────────
   updateSettings: (patch) =>
@@ -381,13 +409,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (timer) scheduleTimer(timer, Date.now() + timer.durationSeconds * 1000);
     set((s) => {
       const { [timerId]: _removed, ...restCompleted } = s.completedTimers;
-      return {
+      const next = {
         completedTimers: restCompleted,
         activeTimers: {
           ...s.activeTimers,
           [timerId]: { timerId, startTimestamp: Date.now(), running: true },
         },
       };
+      persistRuntime({ ...s, ...next });
+      return next;
     });
   },
 
@@ -401,12 +431,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const durationMs = timer ? timer.durationSeconds * 1000 : 0;
       const elapsed = Date.now() - active.startTimestamp;
       const remaining = durationMs - elapsed;
-      return {
+      const next = {
         activeTimers: {
           ...s.activeTimers,
           [timerId]: { ...active, running: false, pausedRemainingMs: Math.max(0, remaining) },
         },
       };
+      persistRuntime({ ...s, ...next });
+      return next;
     });
   },
 
@@ -420,7 +452,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const a = s.activeTimers[timerId];
       if (!a || a.running) return s;
       const r = a.pausedRemainingMs ?? 0;
-      return {
+      const next = {
         activeTimers: {
           ...s.activeTimers,
           [timerId]: {
@@ -432,69 +464,85 @@ export const useAppStore = create<AppStore>((set, get) => ({
           },
         },
       };
+      persistRuntime({ ...s, ...next });
+      return next;
     });
   },
 
   resetTimer: (timerId) => {
     cancelTimer(timerId);
     set((s) => {
-      const next = { ...s.activeTimers };
-      delete next[timerId];
+      const nextTimers = { ...s.activeTimers };
+      delete nextTimers[timerId];
       const { [timerId]: _removed, ...restCompleted } = s.completedTimers;
-      return { activeTimers: next, completedTimers: restCompleted };
+      const next = { activeTimers: nextTimers, completedTimers: restCompleted };
+      persistRuntime({ ...s, ...next });
+      return next;
     });
   },
 
   markTimerDone: (timerId) => {
     cancelTimer(timerId);
     set((s) => {
-      const next = { ...s.activeTimers };
-      delete next[timerId];
-      return {
-        activeTimers: next,
+      const nextTimers = { ...s.activeTimers };
+      delete nextTimers[timerId];
+      const next = {
+        activeTimers: nextTimers,
         completedTimers: { ...s.completedTimers, [timerId]: true },
       };
+      persistRuntime({ ...s, ...next });
+      return next;
     });
   },
 
   startStopwatch: (stopwatchId) =>
-    set((s) => ({
-      activeStopwatches: {
-        ...s.activeStopwatches,
-        [stopwatchId]: { stopwatchId, startTimestamp: Date.now(), running: true, laps: [] },
-      },
-    })),
+    set((s) => {
+      const next = {
+        activeStopwatches: {
+          ...s.activeStopwatches,
+          [stopwatchId]: { stopwatchId, startTimestamp: Date.now(), running: true, laps: [] },
+        },
+      };
+      persistRuntime({ ...s, ...next });
+      return next;
+    }),
 
   pauseStopwatch: (stopwatchId) =>
     set((s) => {
       const active = s.activeStopwatches[stopwatchId];
       if (!active || !active.running) return s;
       const totalElapsed = (active.pausedElapsedMs ?? 0) + (Date.now() - active.startTimestamp);
-      return {
+      const next = {
         activeStopwatches: {
           ...s.activeStopwatches,
           [stopwatchId]: { ...active, running: false, pausedElapsedMs: totalElapsed },
         },
       };
+      persistRuntime({ ...s, ...next });
+      return next;
     }),
 
   resumeStopwatch: (stopwatchId) =>
     set((s) => {
       const active = s.activeStopwatches[stopwatchId];
       if (!active || active.running) return s;
-      return {
+      const next = {
         activeStopwatches: {
           ...s.activeStopwatches,
           [stopwatchId]: { ...active, running: true, startTimestamp: Date.now(), pausedElapsedMs: active.pausedElapsedMs },
         },
       };
+      persistRuntime({ ...s, ...next });
+      return next;
     }),
 
   resetStopwatch: (stopwatchId) =>
     set((s) => {
-      const next = { ...s.activeStopwatches };
-      delete next[stopwatchId];
-      return { activeStopwatches: next };
+      const nextStopwatches = { ...s.activeStopwatches };
+      delete nextStopwatches[stopwatchId];
+      const next = { activeStopwatches: nextStopwatches };
+      persistRuntime({ ...s, ...next });
+      return next;
     }),
 
   lapStopwatch: (stopwatchId) =>
@@ -503,11 +551,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (!active || !active.running) return s;
       const totalElapsed = (active.pausedElapsedMs ?? 0) + (Date.now() - active.startTimestamp);
       const lap: LapEntry = { index: active.laps.length + 1, elapsedMs: totalElapsed };
-      return {
+      const next = {
         activeStopwatches: {
           ...s.activeStopwatches,
           [stopwatchId]: { ...active, laps: [...active.laps, lap] },
         },
       };
+      persistRuntime({ ...s, ...next });
+      return next;
     }),
 }));

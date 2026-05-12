@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
-  TextInput,
   Modal,
 } from 'react-native';
+
+const SNOOZE_OPTIONS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -29,7 +30,6 @@ export default function SettingsScreen() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [snoozeModalVisible, setSnoozeModalVisible] = useState(false);
-  const [snoozeInput, setSnoozeInput] = useState(String(settings.defaultSnoozeDurationMinutes));
 
   async function handleExport() {
     setExporting(true);
@@ -114,7 +114,7 @@ export default function SettingsScreen() {
         {/* Time Settings */}
         <Text style={styles.sectionTitle}>Time</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={() => { setSnoozeInput(String(settings.defaultSnoozeDurationMinutes)); setSnoozeModalVisible(true); }}>
+          <TouchableOpacity style={styles.row} onPress={() => setSnoozeModalVisible(true)}>
             <Text style={styles.rowLabel}>Default Snooze</Text>
             <View style={styles.rowRight}>
               <Text style={styles.rowValue}>{settings.defaultSnoozeDurationMinutes} min</Text>
@@ -179,34 +179,28 @@ export default function SettingsScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Snooze edit modal */}
+      {/* Snooze picker modal */}
       <Modal visible={snoozeModalVisible} transparent animationType="slide" onRequestClose={() => setSnoozeModalVisible(false)}>
-        <View style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSnoozeModalVisible(false)}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Default Snooze (minutes)</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={snoozeInput}
-              onChangeText={setSnoozeInput}
-              keyboardType="number-pad"
-              autoFocus
-              selectTextOnFocus
-            />
-            <View style={styles.modalBtns}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setSnoozeModalVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
+            <Text style={styles.modalTitle}>Default Snooze</Text>
+            {SNOOZE_OPTIONS.map((min) => (
+              <TouchableOpacity
+                key={min}
+                style={[styles.snoozeOption, settings.defaultSnoozeDurationMinutes === min && styles.snoozeOptionActive]}
+                onPress={() => { updateSettings({ defaultSnoozeDurationMinutes: min }); setSnoozeModalVisible(false); }}
+              >
+                <Text style={[styles.snoozeOptionText, settings.defaultSnoozeDurationMinutes === min && styles.snoozeOptionTextActive]}>
+                  {min} {min === 1 ? 'minute' : 'minutes'}
+                </Text>
+                {settings.defaultSnoozeDurationMinutes === min && (
+                  <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalSaveBtn} onPress={() => {
-                const n = parseInt(snoozeInput);
-                if (!isNaN(n) && n > 0) updateSettings({ defaultSnoozeDurationMinutes: n });
-                setSnoozeModalVisible(false);
-              }}>
-                <Text style={styles.modalSaveText}>Save</Text>
-              </TouchableOpacity>
-            </View>
+            ))}
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -278,11 +272,9 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: Colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.borderLight, alignSelf: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 14 },
-  modalInput: { backgroundColor: Colors.surfaceAlt, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 24, fontWeight: '700', color: Colors.text, textAlign: 'center', marginBottom: 20 },
-  modalBtns: { flexDirection: 'row', gap: 10 },
-  modalCancelBtn: { flex: 1, backgroundColor: Colors.surfaceAlt, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  modalCancelText: { color: Colors.textSecondary, fontWeight: '600' },
-  modalSaveBtn: { flex: 1, backgroundColor: Colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  modalSaveText: { color: Colors.text, fontWeight: '700' },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 8 },
+  snoozeOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 13, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  snoozeOptionActive: { },
+  snoozeOptionText: { fontSize: 16, color: Colors.text },
+  snoozeOptionTextActive: { color: Colors.primary, fontWeight: '600' },
 });

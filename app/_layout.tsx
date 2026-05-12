@@ -7,8 +7,10 @@ import * as Notifications from 'expo-notifications';
 import RNAlarmModule from 'react-native-alarmageddon';
 import { useAppStore } from '../src/store/useAppStore';
 import { loadAppData } from '../src/storage/fileStorage';
-import { setupNotificationChannels, requestNotificationPermissions, scheduleAlarmsForWeek } from '../src/engine/scheduler';
+import { loadRuntimeState } from '../src/storage/runtimeStorage';
+import { setupNotificationChannels, requestNotificationPermissions, scheduleAlarmsForWeek, scheduleTimer } from '../src/engine/scheduler';
 import { registerBackgroundTasks } from '../src/engine/backgroundTask';
+import { todayDateString } from '../src/utils/dateUtils';
 
 // alarmageddon emits the *schedule* id, which is the underlying alarm id with
 // a date suffix like `_20251108` appended by the scheduler. Strip it to get
@@ -33,14 +35,38 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   const hydrate = useAppStore((s) => s.hydrate);
+  const hydrateRuntime = useAppStore((s) => s.hydrateRuntime);
   const pruneOldOverrides = useAppStore((s) => s.pruneOldOverrides);
+  const markTimerDone = useAppStore((s) => s.markTimerDone);
 
   useEffect(() => {
-    loadAppData().then((data) => {
+    loadAppData().then(async (data) => {
       hydrate(data);
       pruneOldOverrides();
       // Schedule alarms for the full week on launch
       scheduleAlarmsForWeek(data);
+
+      // Restore in-flight timer/stopwatch state so running/paused items
+      // survive an app kill+relaunch. Running timers whose fire time has
+      // already passed are marked done; future ones are re-scheduled with
+      // the native module in case AlarmManager dropped them (e.g. reboot
+      // before alarmageddon's boot receiver re-registered them).
+      const runtime = await loadRuntimeState();
+      hydrateRuntime(runtime);
+
+      const today = useAppStore.getState().getResolvedDay(todayDateString());
+      const now = Date.now();
+      for (const active of Object.values(runtime.activeTimers)) {
+        if (!active.running) continue;
+        const timer = today.timers.find((t) => t.id === active.timerId);
+        if (!timer) continue;
+        const fireAt = active.startTimestamp + timer.durationSeconds * 1000;
+        if (fireAt <= now) {
+          markTimerDone(active.timerId);
+        } else {
+          scheduleTimer(timer, fireAt);
+        }
+      }
     });
     setupNotificationChannels();
     requestNotificationPermissions();

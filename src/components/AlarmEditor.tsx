@@ -17,6 +17,8 @@ import { generateId } from '../utils/uuid';
 import { formatTime } from '../utils/dateUtils';
 import { TimePicker } from './TimePicker';
 
+const SNOOZE_OPTIONS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
+
 interface Props {
   alarms: Alarm[];
   onChange: (alarms: Alarm[]) => void;
@@ -121,13 +123,20 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
                     placeholderTextColor={Colors.textMuted}
                   />
                 </Field>
-                <Field label="Snooze (minutes)">
-                  <TextInput
-                    style={styles.input}
-                    value={String(editing.snoozeDurationMinutes)}
-                    onChangeText={(v) => setEditing({ ...editing, snoozeDurationMinutes: parseInt(v) || 10 })}
-                    keyboardType="number-pad"
-                  />
+                <Field label="Snooze">
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.snoozeRow}>
+                    {SNOOZE_OPTIONS.map((min) => (
+                      <TouchableOpacity
+                        key={min}
+                        style={[styles.snoozeChip, editing.snoozeDurationMinutes === min && styles.snoozeChipActive]}
+                        onPress={() => setEditing({ ...editing, snoozeDurationMinutes: min })}
+                      >
+                        <Text style={[styles.snoozeChipText, editing.snoozeDurationMinutes === min && styles.snoozeChipTextActive]}>
+                          {min}m
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 </Field>
                 <View style={styles.switchRow}>
                   <Text style={styles.switchLabel}>Enabled</Text>
@@ -197,6 +206,11 @@ const styles = StyleSheet.create({
   field: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: Colors.textMuted, textTransform: 'uppercase', marginBottom: 6 },
   input: { backgroundColor: Colors.surfaceAlt, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: Colors.text },
+  snoozeRow: { flexDirection: 'row' },
+  snoozeChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surfaceAlt, marginRight: 8 },
+  snoozeChipActive: { backgroundColor: Colors.primary },
+  snoozeChipText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
+  snoozeChipTextActive: { color: Colors.text, fontWeight: '700' },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 12 },
   switchTextCol: { flex: 1 },
   switchLabel: { fontSize: 15, color: Colors.text },
