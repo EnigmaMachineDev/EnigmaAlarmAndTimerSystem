@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Enigma Alarm & Timer",
+    "name": "Vigil",
     "slug": "EnigmaAlarmAndTimerSystem",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "scheme": "enigma-alarm",
+    "scheme": "vigil",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.enigma.alarmtimer"
+      "bundleIdentifier": "com.vigil.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.enigma.alarmtimer",
+      "package": "com.vigil.app",
       "permissions": [
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.USE_EXACT_ALARM",

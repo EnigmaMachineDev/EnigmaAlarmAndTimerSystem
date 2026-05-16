@@ -8,6 +8,8 @@ import {
   Switch,
   Alert,
   Modal,
+  Linking,
+  Platform,
 } from 'react-native';
 
 const SNOOZE_OPTIONS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
@@ -38,7 +40,7 @@ export default function SettingsScreen() {
       const path = await exportAppData(store);
       const available = await Sharing.isAvailableAsync();
       if (available) {
-        await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Export Enigma data' });
+        await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Export Vigil data' });
         updateSettings({ lastExportedAt: new Date().toISOString() });
       } else {
         Alert.alert('Sharing not available on this device');
@@ -97,6 +99,26 @@ export default function SettingsScreen() {
     );
   }
 
+  async function handleExactAlarmPermission() {
+    if (Platform.OS === 'android') {
+      try {
+        await Linking.sendIntent('android.settings.REQUEST_SCHEDULE_EXACT_ALARM');
+      } catch {
+        await Linking.openSettings();
+      }
+    }
+  }
+
+  async function handleBatteryOptimization() {
+    if (Platform.OS === 'android') {
+      try {
+        await Linking.sendIntent('android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS');
+      } catch {
+        await Linking.openSettings();
+      }
+    }
+  }
+
   function formatLastExported() {
     if (!settings.lastExportedAt) return 'Never';
     const d = new Date(settings.lastExportedAt);
@@ -124,7 +146,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Notifications */}
-        <Text style={styles.sectionTitle}>Notifications</Text>
+        <Text style={styles.sectionTitle}>Notifications & Permissions</Text>
         <View style={styles.card}>
           <SwitchRow
             label="12-hour format"
@@ -134,7 +156,7 @@ export default function SettingsScreen() {
           <Divider />
           <TouchableOpacity style={styles.row} onPress={async () => {
             const { status } = await Notifications.requestPermissionsAsync();
-            Alert.alert('Notification Permission', status === 'granted' ? 'Notifications are enabled.' : 'Permission denied — enable in Android Settings > Apps > Enigma > Notifications.');
+            Alert.alert('Notification Permission', status === 'granted' ? 'Notifications are enabled.' : 'Permission denied — enable in Android Settings > Apps > [app name] > Notifications.');
           }}>
             <Text style={styles.rowLabel}>Notification Permission</Text>
             <View style={styles.rowRight}>
@@ -143,10 +165,32 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
           <Divider />
+          <TouchableOpacity style={styles.row} onPress={handleExactAlarmPermission}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.rowLabel}>Exact Alarm Permission</Text>
+              <Text style={styles.rowSubLabel}>Required on Android 12+ for alarms to fire at the exact scheduled time</Text>
+            </View>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>Open</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+          <Divider />
+          <TouchableOpacity style={styles.row} onPress={handleBatteryOptimization}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.rowLabel}>Battery Optimization</Text>
+              <Text style={styles.rowSubLabel}>Disable battery optimization for this app so alarms are not killed in the background</Text>
+            </View>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>Open</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+          <Divider />
           <View style={styles.infoRow}>
             <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} style={{ marginTop: 1 }} />
             <Text style={styles.infoText}>
-              Alarms use Android AlarmManager for reliable wake-from-sleep firing with full-screen intent. Ensure Battery Optimization is disabled for Enigma in Android Settings → Apps → Enigma → Battery.
+              Both permissions are required for reliable alarm firing. Without them, Android may delay or suppress alarms — especially in sleep/doze mode.
             </Text>
           </View>
         </View>
@@ -248,6 +292,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: Colors.surface, borderRadius: 12, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
   rowLabel: { fontSize: 15, color: Colors.text },
+  rowSubLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2, lineHeight: 16 },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowValue: { fontSize: 15, color: Colors.textSecondary },
   rowChevron: { fontSize: 18, color: Colors.textMuted },
