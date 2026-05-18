@@ -9,6 +9,8 @@ import {
   Alert,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Colors } from '../constants/colors';
 import { Timer } from '../types';
@@ -107,12 +109,12 @@ export function TimerEditor({ timers, onChange }: Props) {
       ))}
 
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>{isNew ? 'New Timer' : 'Edit Timer'}</Text>
             {editing && (
-              <ScrollView>
+              <ScrollView keyboardShouldPersistTaps="handled">
                 <View style={styles.field}>
                   <Text style={styles.fieldLabel}>Label</Text>
                   <TextInput
@@ -177,7 +179,7 @@ export function TimerEditor({ timers, onChange }: Props) {
               </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

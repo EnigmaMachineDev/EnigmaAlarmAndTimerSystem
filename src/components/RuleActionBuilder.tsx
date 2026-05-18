@@ -8,6 +8,8 @@ import {
   Switch,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Colors } from '../constants/colors';
 import { RuleAction, ActionType } from '../types';
@@ -112,12 +114,12 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
 
       {/* Edit/New Modal */}
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>{editing?.index === null ? 'Add Action' : 'Edit Action'}</Text>
             {editingAction && (
-              <ScrollView>
+              <ScrollView keyboardShouldPersistTaps="handled">
                 {/* Type picker */}
                 <Text style={styles.fieldLabel}>Action Type</Text>
                 <TouchableOpacity style={styles.typeBtn} onPress={() => setTypePickerVisible(true)}>
@@ -237,7 +239,7 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
               </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Type picker sub-modal */}

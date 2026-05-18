@@ -9,6 +9,8 @@ import {
   Alert,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
@@ -102,12 +104,12 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
       ))}
 
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>{isNew ? 'New Alarm' : 'Edit Alarm'}</Text>
             {editing && (
-              <ScrollView>
+              <ScrollView keyboardShouldPersistTaps="handled">
                 <Field label="Time">
                   <TimePicker
                     value={editing.time}
@@ -172,7 +174,7 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
               </ScrollView>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

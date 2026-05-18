@@ -7,6 +7,8 @@ import {
   TextInput,
   Alert,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Colors } from '../constants/colors';
 import { Stopwatch } from '../types';
@@ -74,7 +76,7 @@ export function StopwatchEditor({ stopwatches, onChange }: Props) {
       ))}
 
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>{isNew ? 'New Stopwatch' : 'Edit Stopwatch'}</Text>
@@ -101,7 +103,7 @@ export function StopwatchEditor({ stopwatches, onChange }: Props) {
               </>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
