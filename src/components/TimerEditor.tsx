@@ -30,6 +30,7 @@ const BLANK_TIMER: Omit<Timer, 'id'> = {
 export function TimerEditor({ timers, onChange }: Props) {
   const [editing, setEditing] = useState<Timer | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [hoursStr, setHoursStr] = useState('0');
   const [minutesStr, setMinutesStr] = useState('25');
   const [secondsStr, setSecondsStr] = useState('0');
 
@@ -37,6 +38,7 @@ export function TimerEditor({ timers, onChange }: Props) {
     const t = { id: generateId(), ...BLANK_TIMER };
     setEditing(t);
     setIsNew(true);
+    setHoursStr('0');
     setMinutesStr('25');
     setSecondsStr('0');
   }
@@ -44,17 +46,20 @@ export function TimerEditor({ timers, onChange }: Props) {
   function openEdit(timer: Timer) {
     setEditing({ ...timer });
     setIsNew(false);
-    const m = Math.floor(timer.durationSeconds / 60);
+    const h = Math.floor(timer.durationSeconds / 3600);
+    const m = Math.floor((timer.durationSeconds % 3600) / 60);
     const s = timer.durationSeconds % 60;
+    setHoursStr(String(h));
     setMinutesStr(String(m));
     setSecondsStr(String(s));
   }
 
   function saveTimer() {
     if (!editing) return;
+    const h = parseInt(hoursStr) || 0;
     const m = parseInt(minutesStr) || 0;
     const s = parseInt(secondsStr) || 0;
-    const total = m * 60 + s;
+    const total = h * 3600 + m * 60 + s;
     if (total <= 0) {
       Alert.alert('Invalid duration', 'Duration must be greater than 0.');
       return;
@@ -121,6 +126,16 @@ export function TimerEditor({ timers, onChange }: Props) {
                 <View style={styles.field}>
                   <Text style={styles.fieldLabel}>Duration</Text>
                   <View style={styles.durationRow}>
+                    <View style={styles.durationField}>
+                      <TextInput
+                        style={styles.input}
+                        value={hoursStr}
+                        onChangeText={setHoursStr}
+                        keyboardType="number-pad"
+                      />
+                      <Text style={styles.durationUnit}>hr</Text>
+                    </View>
+                    <Text style={styles.durationSep}>:</Text>
                     <View style={styles.durationField}>
                       <TextInput
                         style={styles.input}

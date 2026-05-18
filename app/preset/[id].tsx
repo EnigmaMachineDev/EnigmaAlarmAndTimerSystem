@@ -133,6 +133,19 @@ export default function EditPresetScreen() {
             />
           ))}
         </View>
+        <View style={styles.customColorRow}>
+          <View style={[styles.customColorPreview, { backgroundColor: color }]} />
+          <TextInput
+            style={styles.customColorInput}
+            value={color}
+            onChangeText={(text) => { if (/^#[0-9A-Fa-f]{0,6}$/.test(text)) setColor(text); }}
+            placeholder="#rrggbb"
+            placeholderTextColor={Colors.textMuted}
+            maxLength={7}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
 
         <Text style={styles.fieldLabel}>Icon</Text>
         <TouchableOpacity style={[styles.iconPickerBtn, { borderColor: color + '66' }]} onPress={() => setIconPickerVisible(true)}>
@@ -193,6 +206,9 @@ const styles = StyleSheet.create({
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorSwatch: { width: 32, height: 32, borderRadius: 16 },
   colorSwatchSelected: { borderWidth: 3, borderColor: Colors.text },
+  customColorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  customColorPreview: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, borderColor: Colors.border },
+  customColorInput: { flex: 1, backgroundColor: Colors.surface, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
   iconPickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.surface, borderRadius: 10, padding: 14, borderWidth: 1, borderColor: Colors.border },
   iconPickerSelected: { fontSize: 28 },
   iconPickerChange: { color: Colors.primary, fontSize: 14 },

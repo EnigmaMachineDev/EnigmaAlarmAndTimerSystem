@@ -161,8 +161,18 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
                       <View style={styles.durationField}>
                         <TextInput
                           style={styles.input}
-                          value={String(Math.floor(editingAction.durationSeconds / 60))}
-                          onChangeText={(v) => updateAction({ durationSeconds: (parseInt(v) || 0) * 60 + (editingAction.durationSeconds % 60) } as any)}
+                          value={String(Math.floor(editingAction.durationSeconds / 3600))}
+                          onChangeText={(v) => updateAction({ durationSeconds: (parseInt(v) || 0) * 3600 + Math.floor((editingAction.durationSeconds % 3600) / 60) * 60 + (editingAction.durationSeconds % 60) } as any)}
+                          keyboardType="number-pad"
+                        />
+                        <Text style={styles.durationUnit}>hr</Text>
+                      </View>
+                      <Text style={styles.durationSep}>:</Text>
+                      <View style={styles.durationField}>
+                        <TextInput
+                          style={styles.input}
+                          value={String(Math.floor((editingAction.durationSeconds % 3600) / 60))}
+                          onChangeText={(v) => updateAction({ durationSeconds: Math.floor(editingAction.durationSeconds / 3600) * 3600 + (parseInt(v) || 0) * 60 + (editingAction.durationSeconds % 60) } as any)}
                           keyboardType="number-pad"
                         />
                         <Text style={styles.durationUnit}>min</Text>
@@ -172,7 +182,7 @@ export function RuleActionBuilder({ actions, onChange }: Props) {
                         <TextInput
                           style={styles.input}
                           value={String(editingAction.durationSeconds % 60)}
-                          onChangeText={(v) => updateAction({ durationSeconds: Math.floor(editingAction.durationSeconds / 60) * 60 + (parseInt(v) || 0) } as any)}
+                          onChangeText={(v) => updateAction({ durationSeconds: Math.floor(editingAction.durationSeconds / 3600) * 3600 + Math.floor((editingAction.durationSeconds % 3600) / 60) * 60 + (parseInt(v) || 0) } as any)}
                           keyboardType="number-pad"
                         />
                         <Text style={styles.durationUnit}>sec</Text>
