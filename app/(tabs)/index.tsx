@@ -51,6 +51,22 @@ export default function TodayScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-restart timers whose autoRestart flag is set when they expire
+  useEffect(() => {
+    const checkTime = Date.now();
+    for (const timer of resolved.timers) {
+      if (!timer.autoRestart) continue;
+      const active = activeTimers[timer.id];
+      if (!active || !active.running || completedTimers[timer.id]) continue;
+      const elapsed = checkTime - active.startTimestamp;
+      const remaining = Math.max(0, timer.durationSeconds * 1000 - elapsed);
+      if (remaining === 0) {
+        startTimer(timer.id);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 300);
