@@ -48,6 +48,10 @@ const migrations: Record<number, MigrationFn> = {
 
     return { ...data, presets, dayCustomizations, ruleAlarms };
   },
+  5: (data: any) => {
+    // Backfill dismissCodeLength: 20 for existing settings that predate the field.
+    return { ...data, settings: { dismissCodeLength: 20, ...data.settings } };
+  },
 };
 
 export function migrate(data: any): AppData {

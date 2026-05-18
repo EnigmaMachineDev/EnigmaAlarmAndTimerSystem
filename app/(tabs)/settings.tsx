@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 const SNOOZE_OPTIONS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
+const CODE_LENGTH_OPTIONS = [8, 12, 16, 20, 24, 30];
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -32,6 +33,7 @@ export default function SettingsScreen() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [snoozeModalVisible, setSnoozeModalVisible] = useState(false);
+  const [codeLengthModalVisible, setCodeLengthModalVisible] = useState(false);
 
   async function handleExport() {
     setExporting(true);
@@ -145,6 +147,21 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Heavy Sleeper */}
+        <Text style={styles.sectionTitle}>Heavy Sleeper</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.row} onPress={() => setCodeLengthModalVisible(true)}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.rowLabel}>Dismiss Code Length</Text>
+              <Text style={styles.rowSubLabel}>Characters required to stop or snooze a Heavy Sleeper alarm</Text>
+            </View>
+            <View style={styles.rowRight}>
+              <Text style={styles.rowValue}>{settings.dismissCodeLength} chars</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Notifications */}
         <Text style={styles.sectionTitle}>Notifications & Permissions</Text>
         <View style={styles.card}>
@@ -222,6 +239,30 @@ export default function SettingsScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Code length picker modal */}
+      <Modal visible={codeLengthModalVisible} transparent animationType="slide" onRequestClose={() => setCodeLengthModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCodeLengthModalVisible(false)}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Dismiss Code Length</Text>
+            {CODE_LENGTH_OPTIONS.map((len) => (
+              <TouchableOpacity
+                key={len}
+                style={[styles.snoozeOption, settings.dismissCodeLength === len && styles.snoozeOptionActive]}
+                onPress={() => { updateSettings({ dismissCodeLength: len }); setCodeLengthModalVisible(false); }}
+              >
+                <Text style={[styles.snoozeOptionText, settings.dismissCodeLength === len && styles.snoozeOptionTextActive]}>
+                  {len} characters
+                </Text>
+                {settings.dismissCodeLength === len && (
+                  <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Snooze picker modal */}
       <Modal visible={snoozeModalVisible} transparent animationType="slide" onRequestClose={() => setSnoozeModalVisible(false)}>

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import RNAlarmModule from 'react-native-alarmageddon';
 import { Colors } from '../src/constants/colors';
-import { generateDismissCode, DISMISS_CODE_LENGTH } from '../src/utils/dismissCode';
+import { generateDismissCode } from '../src/utils/dismissCode';
 import { useAppStore } from '../src/store/useAppStore';
 
 // Heavy Sleeper Mode "ringing" screen.
@@ -37,13 +37,14 @@ export default function RingingScreen() {
   const label = params.label ?? '';
 
   const findAlarmById = useAppStore((s) => s.findAlarmById);
+  const dismissCodeLength = useAppStore((s) => s.settings.dismissCodeLength);
   const alarm = alarmId ? findAlarmById(alarmId) : undefined;
   const snoozeMinutes = alarm?.snoozeDurationMinutes ?? 10;
 
   // Generate the dismiss code exactly once per mount. If the alarm fires
   // again later (e.g. after snooze) the screen will be re-mounted and a new
   // code will be generated automatically.
-  const code = useMemo(() => generateDismissCode(DISMISS_CODE_LENGTH), []);
+  const code = useMemo(() => generateDismissCode(dismissCodeLength), [dismissCodeLength]);
 
   const [input, setInput] = useState('');
   const [showError, setShowError] = useState(false);

@@ -83,7 +83,7 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
         <Text style={styles.emptyText}>No alarms. Tap + Add to create one.</Text>
       )}
 
-      {alarms.map((alarm) => (
+      {[...alarms].sort((a, b) => a.time.localeCompare(b.time)).map((alarm) => (
         <View key={alarm.id} style={styles.itemRow}>
           <TouchableOpacity style={styles.itemMain} onPress={() => openEdit(alarm)}>
             <Text style={styles.itemTime}>{formatTime(alarm.time, use12h)}</Text>
@@ -151,7 +151,7 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
                   <View style={styles.switchTextCol}>
                     <Text style={styles.switchLabel}>Heavy Sleeper Mode</Text>
                     <Text style={styles.switchHint}>
-                      Requires typing a random 20-character code to stop or snooze when this alarm fires.
+                      Requires typing a random code to stop or snooze when this alarm fires. Code length is configured in Settings.
                     </Text>
                   </View>
                   <Switch

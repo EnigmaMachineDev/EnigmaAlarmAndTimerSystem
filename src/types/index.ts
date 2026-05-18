@@ -176,6 +176,7 @@ export interface Settings {
   defaultSnoozeDurationMinutes: number;
   timeFormat: TimeFormat;
   lastExportedAt: string | null; // ISO timestamp or null
+  dismissCodeLength: number;
 }
 
 // ─── AppData (persisted file) ─────────────────────────────────────────────────

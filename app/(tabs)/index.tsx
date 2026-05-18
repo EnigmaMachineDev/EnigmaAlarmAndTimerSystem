@@ -150,7 +150,7 @@ export default function TodayScreen() {
         {resolved.alarms.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Alarms</Text>
-            {resolved.alarms.map((alarm) => (
+            {[...resolved.alarms].sort((a, b) => a.time.localeCompare(b.time)).map((alarm) => (
               <View key={alarm.id} style={styles.alarmRow}>
                 <View style={styles.alarmLeft}>
                   {sourceBadge(alarm.sourceLayer)}
