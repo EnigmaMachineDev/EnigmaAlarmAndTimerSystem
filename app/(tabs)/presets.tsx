@@ -18,24 +18,33 @@ export default function PresetsScreen() {
   const router = useRouter();
   const presets = useAppStore((s) => s.presets);
   const deletePreset = useAppStore((s) => s.deletePreset);
+  const duplicatePreset = useAppStore((s) => s.duplicatePreset);
   const getResolvedDay = useAppStore((s) => s.getResolvedDay);
 
   const todayResolved = getResolvedDay(todayDateString());
   const todayPresetId = todayResolved.preset?.id;
 
-  function handleDelete(preset: Preset) {
-    Alert.alert(
-      'Delete Preset',
-      `Delete "${preset.name}"? This will unassign it from any scheduled days.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deletePreset(preset.id),
-        },
-      ]
-    );
+  function handleLongPress(preset: Preset) {
+    Alert.alert(preset.name, undefined, [
+      {
+        text: 'Duplicate',
+        onPress: () => duplicatePreset(preset.id),
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert(
+            'Delete Preset',
+            `Delete "${preset.name}"? This will unassign it from any scheduled days.`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: () => deletePreset(preset.id) },
+            ]
+          ),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }
 
   return (
@@ -68,7 +77,7 @@ export default function PresetsScreen() {
               key={preset.id}
               style={[styles.presetCard, { borderLeftColor: preset.color }]}
               onPress={() => router.push(`/preset/${preset.id}`)}
-              onLongPress={() => handleDelete(preset)}
+              onLongPress={() => handleLongPress(preset)}
               activeOpacity={0.75}
             >
               <View style={styles.presetCardInner}>

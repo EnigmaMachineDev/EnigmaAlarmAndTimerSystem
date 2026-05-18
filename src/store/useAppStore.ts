@@ -25,6 +25,7 @@ import { saveAppData } from '../storage/fileStorage';
 import { saveRuntimeState, RuntimeState } from '../storage/runtimeStorage';
 import { todayDateString, getDayKey } from '../utils/dateUtils';
 import { scheduleAlarmsForWeek, cancelAllAlarmsForDay, scheduleTimer, cancelTimer } from '../engine/scheduler';
+import { generateId } from '../utils/uuid';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ interface AppStore extends AppData {
   addPreset: (preset: Preset) => void;
   updatePreset: (id: string, patch: Partial<Preset>) => void;
   deletePreset: (id: string) => void;
+  duplicatePreset: (id: string) => void;
 
   // Schedule
   setScheduleDay: (day: DayKey, presetId: string | null) => void;
@@ -194,6 +196,29 @@ export const useAppStore = create<AppStore>((set, get) => ({
       } else {
         scheduleAlarmsForWeek(next);
       }
+      return next;
+    }),
+
+  duplicatePreset: (id) =>
+    set((s) => {
+      const source = s.presets.find((p) => p.id === id);
+      if (!source) return s;
+      const baseName = source.name.replace(/-copy-\d+$/, '');
+      const copyPattern = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-copy-(\\d+)$`);
+      const usedNumbers = s.presets
+        .map((p) => { const m = p.name.match(copyPattern); return m ? parseInt(m[1], 10) : 0; })
+        .filter((n) => n > 0);
+      const nextNum = usedNumbers.length > 0 ? Math.max(...usedNumbers) + 1 : 1;
+      const copy: Preset = {
+        ...source,
+        id: generateId(),
+        name: `${baseName}-copy-${nextNum}`,
+        alarms: source.alarms.map((a) => ({ ...a, id: generateId() })),
+        timers: source.timers.map((t) => ({ ...t, id: generateId() })),
+        stopwatches: source.stopwatches.map((sw) => ({ ...sw, id: generateId() })),
+      };
+      const next = { ...s, presets: [...s.presets, copy] };
+      persist(next);
       return next;
     }),
 
