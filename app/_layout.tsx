@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -39,7 +39,23 @@ export default function RootLayout() {
   const pruneOldOverrides = useAppStore((s) => s.pruneOldOverrides);
   const markTimerDone = useAppStore((s) => s.markTimerDone);
 
+  // Tracks whether the Zustand store has been hydrated from disk.
+  const isHydratedRef = useRef(false);
+  // Captures an alarm scheduleId that fires before hydration completes.
+  const pendingScheduleIdRef = useRef<string | null>(null);
+
   useEffect(() => {
+    function routeToRingingIfHeavySleeper(scheduleId: string) {
+      const underlyingId = parseAlarmIdFromScheduleId(scheduleId);
+      const alarm = useAppStore.getState().findAlarmById(underlyingId);
+      if (alarm?.heavySleeperEnabled) {
+        router.push({
+          pathname: '/ringing',
+          params: { scheduleId, alarmId: underlyingId, label: alarm.label ?? '' },
+        });
+      }
+    }
+
     loadAppData().then(async (data) => {
       hydrate(data);
       pruneOldOverrides();
@@ -67,6 +83,32 @@ export default function RootLayout() {
           scheduleTimer(timer, fireAt);
         }
       }
+
+      // Mark the store as ready so the event listener can start routing.
+      isHydratedRef.current = true;
+
+      // Two race conditions can prevent the ringing screen from appearing:
+      //
+      // 1. Event-before-hydration: onAlarmStateChange fired while loadAppData
+      //    was still in flight. The scheduleId was buffered — process it now.
+      //
+      // 2. Cold-start / dead bridge: the alarm fired while the app was killed.
+      //    AlarmReceiver sets activeAlarmId and calls emitActiveAlarmId(), but
+      //    the RN bridge wasn't initialised yet so the event was lost. The
+      //    native activeAlarmId is still set — poll it once to catch up.
+      if (pendingScheduleIdRef.current) {
+        routeToRingingIfHeavySleeper(pendingScheduleIdRef.current);
+        pendingScheduleIdRef.current = null;
+      } else {
+        try {
+          const active = await RNAlarmModule.getCurrentAlarmPlaying();
+          if (active?.activeAlarmId) {
+            routeToRingingIfHeavySleeper(active.activeAlarmId);
+          }
+        } catch {
+          // ignore — getCurrentAlarmPlaying is best-effort
+        }
+      }
     });
     setupNotificationChannels();
     requestNotificationPermissions();
@@ -77,20 +119,15 @@ export default function RootLayout() {
     const sub = RNAlarmModule.onAlarmStateChange((scheduleId) => {
       if (scheduleId) {
         console.log('[Alarm] Firing:', scheduleId);
-        const underlyingId = parseAlarmIdFromScheduleId(scheduleId);
-        const alarm = useAppStore.getState().findAlarmById(underlyingId);
-        if (alarm?.heavySleeperEnabled) {
-          router.push({
-            pathname: '/ringing',
-            params: {
-              scheduleId,
-              alarmId: underlyingId,
-              label: alarm.label ?? '',
-            },
-          });
+        if (!isHydratedRef.current) {
+          // Store not ready yet — buffer and handle after hydration.
+          pendingScheduleIdRef.current = scheduleId;
+          return;
         }
+        routeToRingingIfHeavySleeper(scheduleId);
       } else {
         console.log('[Alarm] Stopped/dismissed');
+        pendingScheduleIdRef.current = null;
       }
     });
 
