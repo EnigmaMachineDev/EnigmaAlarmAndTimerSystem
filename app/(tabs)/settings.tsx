@@ -138,11 +138,20 @@ export default function SettingsScreen() {
         {/* Time Settings */}
         <Text style={styles.sectionTitle}>Time</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={() => setSnoozeModalVisible(true)}>
-            <Text style={styles.rowLabel}>Default Snooze</Text>
+          <SwitchRow
+            label="Allow Snooze"
+            value={settings.snoozeEnabled}
+            onValueChange={(v) => updateSettings({ snoozeEnabled: v })}
+          />
+          <Divider />
+          <TouchableOpacity
+            style={[styles.row, !settings.snoozeEnabled && styles.rowDisabled]}
+            onPress={() => settings.snoozeEnabled && setSnoozeModalVisible(true)}
+          >
+            <Text style={[styles.rowLabel, !settings.snoozeEnabled && styles.rowLabelDisabled]}>Default Snooze</Text>
             <View style={styles.rowRight}>
-              <Text style={styles.rowValue}>{settings.defaultSnoozeDurationMinutes} min</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+              <Text style={[styles.rowValue, !settings.snoozeEnabled && styles.rowLabelDisabled]}>{settings.defaultSnoozeDurationMinutes} min</Text>
+              <Ionicons name="chevron-forward" size={16} color={settings.snoozeEnabled ? Colors.textSecondary : Colors.textMuted} />
             </View>
           </TouchableOpacity>
         </View>
@@ -333,6 +342,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: Colors.surface, borderRadius: 12, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
   rowLabel: { fontSize: 15, color: Colors.text },
+  rowLabelDisabled: { color: Colors.textMuted },
+  rowDisabled: { opacity: 0.5 },
   rowSubLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2, lineHeight: 16 },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowValue: { fontSize: 15, color: Colors.textSecondary },

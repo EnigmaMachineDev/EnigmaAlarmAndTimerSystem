@@ -56,7 +56,7 @@ function toLocalISOString(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-export async function scheduleAlarm(alarm: Alarm, date: string): Promise<boolean> {
+export async function scheduleAlarm(alarm: Alarm, date: string, snoozeAllowed = true): Promise<boolean> {
   try {
     const [hours, minutes] = alarm.time.split(':').map(Number);
     const [year, month, day] = date.split('-').map(Number);
@@ -73,10 +73,9 @@ export async function scheduleAlarm(alarm: Alarm, date: string): Promise<boolean
       datetimeISO,
       title: alarm.label || 'Alarm',
       body: alarm.label ? alarm.label : `Scheduled for ${alarm.time}`,
-      // When Heavy Sleeper is on, snooze must also be gated through the
-      // ringing screen, so we tell the native module to suppress its
-      // notification action buttons entirely (see requireDismissCode below).
-      snoozeEnabled: !alarm.heavySleeperEnabled,
+      // Heavy Sleeper suppresses notification buttons via requireDismissCode.
+      // The global snoozeAllowed flag provides a second path to disable snooze.
+      snoozeEnabled: !alarm.heavySleeperEnabled && snoozeAllowed,
       snoozeInterval: alarm.snoozeDurationMinutes,
       requireDismissCode: alarm.heavySleeperEnabled,
     } as any);
@@ -173,7 +172,7 @@ export async function scheduleAlarmsForWeek(data: AppData): Promise<void> {
     const allAlarms = [...resolvedAlarms, ...dateNewRuleAlarms];
     for (const alarm of allAlarms) {
       if (!alarm.enabled) continue;
-      const ok = await scheduleAlarm(alarm, dateStr);
+      const ok = await scheduleAlarm(alarm, dateStr, data.settings.snoozeEnabled);
       if (ok) totalScheduled++;
     }
   }

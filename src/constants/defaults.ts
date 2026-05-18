@@ -1,9 +1,10 @@
 import { AppData, Settings, Schedule } from '../types';
 
-export const CURRENT_VERSION = 5;
+export const CURRENT_VERSION = 6;
 
 export const DEFAULT_SETTINGS: Settings = {
   defaultSnoozeDurationMinutes: 10,
+  snoozeEnabled: true,
   timeFormat: '12h',
   lastExportedAt: null,
   dismissCodeLength: 20,

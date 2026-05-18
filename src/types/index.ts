@@ -174,6 +174,7 @@ export interface Rule {
 
 export interface Settings {
   defaultSnoozeDurationMinutes: number;
+  snoozeEnabled: boolean;
   timeFormat: TimeFormat;
   lastExportedAt: string | null; // ISO timestamp or null
   dismissCodeLength: number;

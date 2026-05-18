@@ -38,6 +38,7 @@ export default function RingingScreen() {
 
   const findAlarmById = useAppStore((s) => s.findAlarmById);
   const dismissCodeLength = useAppStore((s) => s.settings.dismissCodeLength);
+  const snoozeEnabled = useAppStore((s) => s.settings.snoozeEnabled);
   const alarm = alarmId ? findAlarmById(alarmId) : undefined;
   const snoozeMinutes = alarm?.snoozeDurationMinutes ?? 10;
 
@@ -165,7 +166,9 @@ export default function RingingScreen() {
 
         <View style={styles.codeBlock}>
           <Text style={styles.codeHelp}>
-            Type the code below exactly to stop or snooze this alarm.
+            {snoozeEnabled
+              ? 'Type the code below exactly to stop or snooze this alarm.'
+              : 'Type the code below exactly to stop this alarm.'}
           </Text>
           <Text
             style={styles.codeText}
@@ -206,19 +209,21 @@ export default function RingingScreen() {
         )}
 
         <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.snoozeBtn,
-              !matches || busy ? styles.buttonDisabled : null,
-            ]}
-            onPress={handleSnooze}
-            disabled={!!busy}
-          >
-            <Text style={styles.buttonText}>
-              {busy === 'snooze' ? 'Snoozing…' : `Snooze ${snoozeMinutes}m`}
-            </Text>
-          </TouchableOpacity>
+          {snoozeEnabled && (
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.snoozeBtn,
+                !matches || busy ? styles.buttonDisabled : null,
+              ]}
+              onPress={handleSnooze}
+              disabled={!!busy}
+            >
+              <Text style={styles.buttonText}>
+                {busy === 'snooze' ? 'Snoozing…' : `Snooze ${snoozeMinutes}m`}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[
               styles.button,

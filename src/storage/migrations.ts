@@ -52,6 +52,10 @@ const migrations: Record<number, MigrationFn> = {
     // Backfill dismissCodeLength: 20 for existing settings that predate the field.
     return { ...data, settings: { dismissCodeLength: 20, ...data.settings } };
   },
+  6: (data: any) => {
+    // Backfill snoozeEnabled: true for existing settings that predate the field.
+    return { ...data, settings: { snoozeEnabled: true, ...data.settings } };
+  },
 };
 
 export function migrate(data: any): AppData {
