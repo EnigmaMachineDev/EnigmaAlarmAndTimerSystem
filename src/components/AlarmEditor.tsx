@@ -32,6 +32,7 @@ const BLANK_ALARM: Omit<Alarm, 'id'> = {
   time: '07:00',
   enabled: true,
   sound: 'default',
+  snoozeEnabled: true,
   snoozeDurationMinutes: 10,
   origin: 'preset',
   heavySleeperEnabled: false,
@@ -125,21 +126,32 @@ export function AlarmEditor({ alarms, onChange, use12h = true }: Props) {
                     placeholderTextColor={Colors.textMuted}
                   />
                 </Field>
-                <Field label="Snooze">
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.snoozeRow}>
-                    {SNOOZE_OPTIONS.map((min) => (
-                      <TouchableOpacity
-                        key={min}
-                        style={[styles.snoozeChip, editing.snoozeDurationMinutes === min && styles.snoozeChipActive]}
-                        onPress={() => setEditing({ ...editing, snoozeDurationMinutes: min })}
-                      >
-                        <Text style={[styles.snoozeChipText, editing.snoozeDurationMinutes === min && styles.snoozeChipTextActive]}>
-                          {min}m
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </Field>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Snooze</Text>
+                  <Switch
+                    value={editing.snoozeEnabled}
+                    onValueChange={(v) => setEditing({ ...editing, snoozeEnabled: v })}
+                    trackColor={{ false: Colors.alarmOff, true: Colors.alarmOn }}
+                    thumbColor={Colors.text}
+                  />
+                </View>
+                {editing.snoozeEnabled && (
+                  <Field label="Snooze Duration">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.snoozeRow}>
+                      {SNOOZE_OPTIONS.map((min) => (
+                        <TouchableOpacity
+                          key={min}
+                          style={[styles.snoozeChip, editing.snoozeDurationMinutes === min && styles.snoozeChipActive]}
+                          onPress={() => setEditing({ ...editing, snoozeDurationMinutes: min })}
+                        >
+                          <Text style={[styles.snoozeChipText, editing.snoozeDurationMinutes === min && styles.snoozeChipTextActive]}>
+                            {min}m
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </Field>
+                )}
                 <View style={styles.switchRow}>
                   <Text style={styles.switchLabel}>Enabled</Text>
                   <Switch

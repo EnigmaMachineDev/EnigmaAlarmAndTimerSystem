@@ -56,6 +56,33 @@ const migrations: Record<number, MigrationFn> = {
     // Backfill snoozeEnabled: true for existing settings that predate the field.
     return { ...data, settings: { snoozeEnabled: true, ...data.settings } };
   },
+  7: (data: any) => {
+    // Move snoozeEnabled from global settings to per-alarm field.
+    // Existing alarms inherit the old global value; new alarms default to true.
+    const wasEnabled = data.settings?.snoozeEnabled !== false;
+    const backfillAlarm = (a: any) =>
+      a && typeof a === 'object' && a.snoozeEnabled === undefined
+        ? { ...a, snoozeEnabled: wasEnabled }
+        : a;
+
+    const presets = (data.presets ?? []).map((p: any) => ({
+      ...p,
+      alarms: (p.alarms ?? []).map(backfillAlarm),
+    }));
+
+    const dayCustomizations = (data.dayCustomizations ?? []).map((c: any) => ({
+      ...c,
+      addAlarms: (c.addAlarms ?? []).map(backfillAlarm),
+    }));
+
+    const ruleAlarms = (data.ruleAlarms ?? []).map((ra: any) => ({
+      ...ra,
+      alarm: backfillAlarm(ra.alarm),
+    }));
+
+    const { snoozeEnabled: _dropped, ...restSettings } = data.settings ?? {};
+    return { ...data, settings: restSettings, presets, dayCustomizations, ruleAlarms };
+  },
 };
 
 export function migrate(data: any): AppData {

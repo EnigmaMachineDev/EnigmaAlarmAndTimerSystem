@@ -38,8 +38,8 @@ export default function RingingScreen() {
 
   const findAlarmById = useAppStore((s) => s.findAlarmById);
   const dismissCodeLength = useAppStore((s) => s.settings.dismissCodeLength);
-  const snoozeEnabled = useAppStore((s) => s.settings.snoozeEnabled);
   const alarm = alarmId ? findAlarmById(alarmId) : undefined;
+  const snoozeEnabled = alarm?.snoozeEnabled ?? true;
   const snoozeMinutes = alarm?.snoozeDurationMinutes ?? 10;
 
   // Generate the dismiss code exactly once per mount. If the alarm fires

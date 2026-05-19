@@ -138,20 +138,14 @@ export default function SettingsScreen() {
         {/* Time Settings */}
         <Text style={styles.sectionTitle}>Time</Text>
         <View style={styles.card}>
-          <SwitchRow
-            label="Allow Snooze"
-            value={settings.snoozeEnabled}
-            onValueChange={(v) => updateSettings({ snoozeEnabled: v })}
-          />
-          <Divider />
           <TouchableOpacity
-            style={[styles.row, !settings.snoozeEnabled && styles.rowDisabled]}
-            onPress={() => settings.snoozeEnabled && setSnoozeModalVisible(true)}
+            style={styles.row}
+            onPress={() => setSnoozeModalVisible(true)}
           >
-            <Text style={[styles.rowLabel, !settings.snoozeEnabled && styles.rowLabelDisabled]}>Default Snooze</Text>
+            <Text style={styles.rowLabel}>Default Snooze Duration</Text>
             <View style={styles.rowRight}>
-              <Text style={[styles.rowValue, !settings.snoozeEnabled && styles.rowLabelDisabled]}>{settings.defaultSnoozeDurationMinutes} min</Text>
-              <Ionicons name="chevron-forward" size={16} color={settings.snoozeEnabled ? Colors.textSecondary : Colors.textMuted} />
+              <Text style={styles.rowValue}>{settings.defaultSnoozeDurationMinutes} min</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
             </View>
           </TouchableOpacity>
         </View>

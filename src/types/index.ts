@@ -34,6 +34,7 @@ export interface Alarm {
   time: string; // "HH:MM" 24h
   enabled: boolean;
   sound: string;
+  snoozeEnabled: boolean;
   snoozeDurationMinutes: number;
   origin: Origin;
   /**
@@ -95,6 +96,7 @@ export interface AlarmModification {
   label?: string;
   enabled?: boolean;
   sound?: string;
+  snoozeEnabled?: boolean;
   snoozeDurationMinutes?: number;
 }
 
@@ -174,7 +176,6 @@ export interface Rule {
 
 export interface Settings {
   defaultSnoozeDurationMinutes: number;
-  snoozeEnabled: boolean;
   timeFormat: TimeFormat;
   lastExportedAt: string | null; // ISO timestamp or null
   dismissCodeLength: number;
